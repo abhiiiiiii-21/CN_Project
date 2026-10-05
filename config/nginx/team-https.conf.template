@@ -1,0 +1,39 @@
+# ==============================================================================
+# Nginx HTTPS Load Balancer Configuration Template (Mac 2)
+# ==============================================================================
+# Upstream backends located on Mac 3 (Ports 3001 and 3002)
+# TLS termination on Mac 2 edge proxy (Port 8443)
+# NOTE: Both backends run on Mac 3. There is NO Mac 4.
+
+upstream team_backend {
+    server MAC3_IP:3001;
+    server MAC3_IP:3002;
+}
+
+server {
+    listen 8443 ssl;
+    server_name app.TEAM.test api.TEAM.test;
+
+    # TLS Certificates (Placeholders - do not commit private keys)
+    ssl_certificate CERTIFICATE_PATH;       # e.g., /path/to/certs/TEAM.crt
+    ssl_certificate_key PRIVATE_KEY_PATH;   # e.g., /path/to/certs/TEAM.key
+
+    # TLS Protocol & Cipher Suite Settings
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # Reverse proxy to Mac 3 upstream pool
+    location / {
+        proxy_pass http://team_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+
+        # Timeouts and failover settings
+        proxy_connect_timeout 2s;
+        proxy_read_timeout 5s;
+        proxy_next_upstream error timeout http_502 http_503;
+    }
+}
