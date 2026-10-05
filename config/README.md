@@ -7,7 +7,7 @@ The project operates across **exactly three Macs**:
 - **Mac 2**: Edge reverse proxy, load balancer, and TLS termination (`nginx`) on ports 8080 and 8443.
 - **Mac 3**: Dual Python backend instances (Ports 3001 and 3002) and Wireshark packet capture.
 
-> **Note:** There is **NO Mac 4** in this architecture. Both backends run on Mac 3.
+> **Note:** Both backend instances (Backend A and Backend B) run concurrently on Mac 3.
 
 ---
 

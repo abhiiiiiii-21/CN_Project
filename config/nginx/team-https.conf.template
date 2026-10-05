@@ -3,7 +3,7 @@
 # ==============================================================================
 # Upstream backends located on Mac 3 (Ports 3001 and 3002)
 # TLS termination on Mac 2 edge proxy (Port 8443)
-# NOTE: Both backends run on Mac 3. There is NO Mac 4.
+# NOTE: Both backends run as separate processes on Mac 3.
 
 upstream team_backend {
     server MAC3_IP:3001;

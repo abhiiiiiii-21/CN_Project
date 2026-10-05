@@ -2,37 +2,70 @@
 
 ## Overview
 
-This document specifies the end-to-end setup and orchestrated initialization procedure for the three-Mac private network. Following this strict startup sequence ensures service dependencies are satisfied without race conditions or false connection errors.
+This document specifies the end-to-end setup and orchestrated initialization procedure for the three-Mac private network. Following this strict 8-step sequence ensures service dependencies are satisfied without race conditions or false connection errors.
+
+The architecture uses **exactly three physical Macs**:
+- **Mac 1**: Private DNS (`dnsmasq`) and Client
+- **Mac 2**: Edge Nginx Reverse Proxy, Load Balancer, and TLS Termination
+- **Mac 3**: Dual Python Backend Instances (Ports 3001 and 3002) and Wireshark Packet Capture
 
 ---
 
-## 1. Network Requirements and IP Discovery
+## Recommended Setup Order
 
-### Local Area Network (LAN) Requirements
-- All three Macs must be connected to the **same Wi-Fi network or Ethernet subnet** with client-to-client isolation disabled (AP isolation must be off).
-- ICMP echo requests (`ping`) must be permitted between all three hosts.
+```text
+Step 1: Common network setup on all Macs
+   │
+   ▼
+Step 2: Mac 1 → dnsmasq (Private DNS)
+   │
+   ▼
+Step 3: Mac 3 → Backend A (:3001) + Backend B (:3002)
+   │
+   ▼
+Step 4: Mac 2 → nginx HTTP (Port 8080)
+   │
+   ▼
+Step 5: Mac 2 → TLS Termination (Port 8443)
+   │
+   ▼
+Step 6: Configure Mac 2 and Mac 3 to use Mac 1 DNS
+   │
+   ▼
+Step 7: Wireshark capture on Mac 3
+   │
+   ▼
+Step 8: Final end-to-end verification
+```
 
-### IP Discovery Procedure
-On each Mac, identify the active IPv4 interface address:
+---
+
+## Step 1: Common Network Setup on All Macs
+
+### 1.1 Connect to Shared Subnet
+- Connect Mac 1, Mac 2, and Mac 3 to the **same local area network** (Wi-Fi or Ethernet switch).
+- Ensure client-to-client isolation (AP isolation) is disabled on the router.
+
+### 1.2 Identify Active IP Addresses
+Run on each Mac to determine its assigned IPv4 address:
 ```bash
-# macOS Wi-Fi interface address discovery
 ipconfig getifaddr en0
 ```
-Verify connectivity across nodes:
+
+Verify ping reachability between all three nodes:
 ```bash
-# From Mac 1 or Mac 2:
-ping -c 3 MAC3_IP
+# From Mac 1 / Mac 2 / Mac 3:
+ping -c 3 10.7.21.145   # Mac 1
+ping -c 3 10.7.19.92    # Mac 2
+ping -c 3 10.7.29.148   # Mac 3
 ```
 
----
-
-## 2. Environment Configuration (`cn-team.env`)
-
-Create the active environment file on each machine from the template:
+### 1.3 Initialize Environment File
+On each machine, copy the template and configure the current network values:
 ```bash
 cp config/cn-team.env.example config/cn-team.env
 ```
-Edit `config/cn-team.env` with the discovered IPs:
+Populate `config/cn-team.env`:
 ```bash
 export TEAM=team1
 export MAC1_IP=10.7.21.145
@@ -40,72 +73,161 @@ export MAC2_IP=10.7.19.92
 export MAC3_IP=10.7.29.148
 export COLLEGE_DNS=8.8.8.8
 ```
-*(Note: There is NO `MAC4_IP`. All configurations must strictly adhere to the 3-Mac architecture.)*
 
-Run the rendering script to generate active configuration files:
+---
+
+## Step 2: Mac 1 → dnsmasq Setup
+
+On **Mac 1**, set up and run the private DNS server:
+
+1. Install `dnsmasq` (via Homebrew if not installed):
+   ```bash
+   brew install dnsmasq
+   ```
+2. Verify configuration in `config/live/dnsmasq.conf`:
+   ```text
+   listen-address=127.0.0.1,10.7.21.145
+   bind-interfaces
+   no-resolv
+   server=8.8.8.8
+   server=1.1.1.1
+   local=/team1.test/
+   host-record=app.team1.test,10.7.19.92
+   host-record=api.team1.test,10.7.19.92
+   domain-needed
+   bogus-priv
+   log-queries
+   ```
+3. Start `dnsmasq` in the foreground for logging:
+   ```bash
+   sudo dnsmasq -C $(pwd)/config/live/dnsmasq.conf -d
+   ```
+4. Verify local resolution:
+   ```bash
+   dig @127.0.0.1 app.team1.test +short
+   # Output: 10.7.19.92
+   ```
+
+---
+
+## Step 3: Mac 3 → Backend A + Backend B
+
+Both backend instances run concurrently on **Mac 3**.
+
+1. Navigate to the project root on Mac 3:
+   ```bash
+   cd CN_Project
+   ```
+2. Start **Backend A** in Terminal 1:
+   ```bash
+   python3 backend/server.py A 3001
+   ```
+3. Start **Backend B** in Terminal 2:
+   ```bash
+   python3 backend/server.py B 3002
+   ```
+4. Verify both backends respond locally on Mac 3:
+   ```bash
+   curl -i http://127.0.0.1:3001/status
+   curl -i http://127.0.0.1:3002/status
+   ```
+   Confirm that each response includes its respective `X-Backend: A` and `X-Backend: B` headers.
+
+---
+
+## Step 4: Mac 2 → Nginx HTTP Setup
+
+On **Mac 2**, set up the HTTP reverse proxy and load balancer:
+
+1. Install `nginx` (e.g. `brew install nginx`).
+2. Test network connectivity from Mac 2 to both backends on Mac 3:
+   ```bash
+   nc -zv 10.7.29.148 3001
+   nc -zv 10.7.29.148 3002
+   ```
+3. Render or configure `config/nginx/team-http.conf.template` with Mac 3's IP.
+4. Start nginx:
+   ```bash
+   sudo nginx -c $(pwd)/config/live/team-http.conf
+   ```
+5. Test HTTP ingress on port 8080:
+   ```bash
+   curl -i http://10.7.19.92:8080/
+   ```
+
+---
+
+## Step 5: Mac 2 → TLS Setup
+
+On **Mac 2**, configure TLS termination for port 8443:
+
+1. Generate Root CA and server certificates with SAN (`DNS:app.team1.test`, `DNS:api.team1.test`) using `scripts/make-certs.sh`.
+2. Configure `ssl_certificate` and `ssl_certificate_key` directives in the Nginx configuration.
+3. Reload Nginx:
+   ```bash
+   sudo nginx -s reload
+   ```
+4. Trust the Root CA on Mac 1 and test clients:
+   ```bash
+   sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certs/rootCA.crt
+   ```
+
+---
+
+## Step 6: Configure Mac 2 and Mac 3 to Use Mac 1 DNS
+
+Point system DNS resolvers on Mac 2 and Mac 3 to Mac 1 (`10.7.21.145`):
+
 ```bash
-./scripts/render-configs.sh
+# macOS CLI DNS configuration for Wi-Fi service
+sudo networksetup -setdnsservers Wi-Fi 10.7.21.145 8.8.8.8
+```
+
+Verify that `app.team1.test` and `api.team1.test` resolve to Mac 2 (`10.7.19.92`):
+```bash
+dscacheutil -q host -a name app.team1.test
 ```
 
 ---
 
-## 3. Service Startup Order
+## Step 7: Wireshark Capture on Mac 3
 
-Services must be launched in reverse-dependency order:
+On **Mac 3**, capture network packets to observe backend ingress:
 
-```text
-Step 1: Mac 3 (Backends A & B)
-   │
-   ▼
-Step 2: Mac 2 (Nginx Edge Load Balancer)
-   │
-   ▼
-Step 3: Mac 1 (dnsmasq Private DNS)
-   │
-   ▼
-Step 4: Clients (DNS Resolver Configuration & Validation)
-```
+1. Open Wireshark on Mac 3.
+2. Select interface `en0`.
+3. Set capture filter:
+   ```text
+   tcp port 3001 or tcp port 3002
+   ```
+4. Start the capture before sending test traffic.
 
-### Step 1: Start Backends on Mac 3
-Launch both backend processes on Mac 3 and start Wireshark packet capture:
-```bash
-# Mac 3 - Terminal 1: Backend A
-python3 backend/server.py A 3001
+---
 
-# Mac 3 - Terminal 2: Backend B
-python3 backend/server.py B 3002
+## Step 8: Final Verification
 
-# Mac 3 - Terminal 3: Wireshark
-# Capture interface: en0 (filtered by port 3001 or 3002)
-```
+Run the end-to-end verification suite from the client machine (or Mac 1):
 
-### Step 2: Start Nginx Edge on Mac 2
-Ensure Mac 3 ports 3001 and 3002 are reachable from Mac 2 before starting `nginx`:
-```bash
-# Verify upstream connectivity
-nc -zv MAC3_IP 3001
-nc -zv MAC3_IP 3002
-
-# Start or reload nginx with rendered configuration
-sudo nginx -c $(pwd)/config/live/team-https.conf
-```
-
-### Step 3: Start Private DNS on Mac 1
-Launch `dnsmasq` bound to Mac 1's LAN IP:
-```bash
-sudo dnsmasq -C $(pwd)/config/live/dnsmasq.conf -d
-```
-
-### Step 4: Configure Client DNS & Validate
-On the client Mac (or Mac 1):
-```bash
-# Test direct DNS lookup
-dig @MAC1_IP app.team1.test
-
-# Test HTTP and HTTPS endpoints through edge proxy
-curl -i http://app.team1.test:8080/
-curl -i --cacert certs/rootCA.crt https://app.team1.test:8443/
-```
+1. **DNS Lookup:**
+   ```bash
+   dig @10.7.21.145 app.team1.test +short
+   ```
+2. **HTTP Load Balancing:**
+   ```bash
+   for i in {1..4}; do curl -sI http://app.team1.test:8080/ | grep -i "X-Backend:"; done
+   ```
+   *Expect alternating `X-Backend: A` and `X-Backend: B`.*
+3. **HTTPS Verification:**
+   ```bash
+   curl -i --cacert certs/rootCA.crt https://app.team1.test:8443/
+   ```
+4. **Caching & 304:**
+   ```bash
+   ETAG=$(curl -sI http://app.team1.test:8080/ | grep -i "ETag:" | awk '{print $2}' | tr -d '\r')
+   curl -i -H "If-None-Match: $ETAG" http://app.team1.test:8080/
+   ```
+   *Expect `HTTP/1.1 304 Not Modified`.*
+5. **Stop Wireshark capture** on Mac 3 and save the `.pcapng` session into `evidence/G-packet-capture/`.
 
 ---
 

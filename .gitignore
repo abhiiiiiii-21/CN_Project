@@ -16,7 +16,10 @@ venv/
 ENV/
 
 # Configuration & Secrets
+.env
+*.env
 config/cn-team.env
+!config/cn-team.env.example
 *.key
 *.pem
 *.pfx

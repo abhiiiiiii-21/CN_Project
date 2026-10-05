@@ -2,7 +2,7 @@
 
 ## Overview
 
-A robust distributed network platform must demonstrate resilience, graceful degradation, and informative failure modes when faults occur. This document defines five specific failure scenarios (F1 through F5) evaluated during project testing.
+A robust distributed network platform must demonstrate resilience, graceful degradation, and informative failure modes when faults occur. This document defines five specific failure scenarios (F1 through F5) evaluated during project testing across the three-Mac topology.
 
 > **Note:** Do not fabricate test results in advance. Outputs, traces, and screenshots will be captured and documented in `evidence/failures/` during actual execution.
 
@@ -11,7 +11,7 @@ A robust distributed network platform must demonstrate resilience, graceful degr
 ## Failure Scenarios
 
 ### F1: Wrong DNS Server
-- **Scenario:** The client attempts to query a DNS server other than Mac 1 (e.g., public DNS or an unconfigured LAN host) for the internal domain `app.team1.test`.
+- **Scenario:** The client attempts to query a DNS server other than Mac 1 (such as `8.8.8.8` or another LAN host) for the internal domain `app.team1.test`.
 - **Expected Outcome:** DNS lookup fails with `NXDOMAIN` or query timeout because external resolvers have no authoritative knowledge of `.test` private records.
 - **Reproduction Command:**
   ```bash
@@ -24,37 +24,39 @@ A robust distributed network platform must demonstrate resilience, graceful degr
 
 ### F2: Wrong DNS Record
 - **Scenario:** The client queries Mac 1 for a subdomain that does not exist in `dnsmasq.conf` (e.g., `invalid.team1.test`).
-- **Expected Outcome:** `dnsmasq` responds with `NXDOMAIN` (non-existent domain).
+- **Expected Outcome:** `dnsmasq` on Mac 1 responds with `NXDOMAIN` (non-existent domain).
 - **Reproduction Command:**
   ```bash
-  dig @MAC1_IP invalid.team1.test
+  dig @10.7.21.145 invalid.team1.test
   ```
 - **Observed Result:** *(TODO: Record output during testing)*
 
 ---
 
-### F3: Backend A Down (Single Node Failover)
-- **Scenario:** Backend A process on Mac 3 (`:3001`) is terminated, while Backend B (`:3002`) remains healthy.
-- **Expected Outcome:** Nginx detects the connection failure on port 3001, automatically routes traffic to Backend B via `proxy_next_upstream`, and returns HTTP 200 with header `X-Backend: B`. No outage is visible to the client.
+### F3: Backend A Down (Single Node Failover on Mac 3)
+- **Scenario:** The **Backend A** process on **Mac 3** (`:3001`) is terminated, while **Backend B** (`:3002`) on the same Mac 3 remains running and healthy.
+- **Expected Outcome:** Nginx on Mac 2 detects the connection failure on port 3001, automatically routes traffic to Backend B on port 3002 via `proxy_next_upstream`, and returns HTTP 200 with header `X-Backend: B`. No outage is visible to the client.
 - **Reproduction Steps:**
-  1. Kill Backend A on Mac 3 (`kill -9 <PID_Backend_A>`).
-  2. Send requests to Mac 2:
+  1. On **Mac 3**, terminate Backend A (`Ctrl+C` or `kill <PID_Backend_A>`).
+  2. Send requests to Mac 2 from the client:
      ```bash
      curl -i http://app.team1.test:8080/
      ```
+  3. Verify response header `X-Backend: B` is returned consistently.
 - **Observed Result:** *(TODO: Record output during testing)*
 
 ---
 
-### F4: Both Backends Down (Upstream Pool Exhaustion)
-- **Scenario:** Both Backend A (`:3001`) and Backend B (`:3002`) are stopped on Mac 3.
-- **Expected Outcome:** Nginx cannot establish upstream connections to any server in the pool and returns `HTTP/1.1 502 Bad Gateway`.
+### F4: Both Backends Down (Upstream Pool Exhaustion on Mac 3)
+- **Scenario:** Both **Backend A** (`:3001`) and **Backend B** (`:3002`) are stopped on **Mac 3**.
+- **Expected Outcome:** Nginx on Mac 2 cannot establish an upstream connection to any service in the pool and returns `HTTP/1.1 502 Bad Gateway`.
 - **Reproduction Steps:**
-  1. Terminate both backend processes on Mac 3.
-  2. Send request to Mac 2:
+  1. On **Mac 3**, stop both Backend A and Backend B processes.
+  2. Send a request to Mac 2:
      ```bash
      curl -i http://app.team1.test:8080/
      ```
+  3. Verify response is `502 Bad Gateway`.
 - **Observed Result:** *(TODO: Record output during testing)*
 
 ---

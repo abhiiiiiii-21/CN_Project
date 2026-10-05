@@ -19,8 +19,8 @@ Secure communication between client browsers and the edge proxy is established u
          │
          ▼
    [ Server Certificate (Mac 2) ]
-      - CN: app.TEAM.test
-      - SAN: DNS:app.TEAM.test, DNS:api.TEAM.test
+      - CN: app.team1.test
+      - SAN: DNS:app.team1.test, DNS:api.team1.test
       - Terminated at Mac 2 (Nginx :8443)
 ```
 
@@ -31,18 +31,22 @@ Secure communication between client browsers and the edge proxy is established u
 ### 1. Local / Team Certificate Authority
 A self-signed Root CA is generated using `scripts/make-certs.sh`. The Root CA certificate (`rootCA.crt`) is distributed to client devices so that certificates signed by it are recognized as fully trusted.
 
-### 2. Server Certificate & SAN
+### 2. Server Certificate & Subject Alternative Names (SAN)
 The server certificate is issued specifically for the team domain namespace and includes Subject Alternative Name (SAN) fields:
-- `DNS.1 = app.TEAM.test`
-- `DNS.2 = api.TEAM.test`
+- `DNS.1 = app.team1.test`
+- `DNS.2 = api.team1.test`
 
-SAN entries prevent modern browsers and CLI tools from rejecting the certificate due to host mismatch errors.
+SAN entries are required by modern web browsers and CLI tools to validate the server identity without host mismatch warnings.
 
-### 3. TLS Termination at Edge Proxy
-Nginx on Mac 2 handles cryptographic negotiation (TLS 1.2 and TLS 1.3), cipher suite selection, and session resumption. Communication between Mac 2 and the upstream backends on Mac 3 remains within the private network over HTTP.
+### 3. TLS Termination at Nginx (Mac 2)
+Nginx on Mac 2 handles cryptographic negotiation (TLS 1.2 and TLS 1.3), cipher suite selection, and session resumption:
+- Listens on `8443 ssl`
+- Uses `ssl_protocols TLSv1.2 TLSv1.3;`
+- Cipher suites: `HIGH:!aNULL:!MD5;`
+- Proxies decrypted requests over plain HTTP to Mac 3 backends.
 
-### 4. Client Certificate Trust on macOS
-To trust the Root CA on client machines:
+### 4. Certificate Trust on macOS
+To establish trust for the Root CA on client devices running macOS:
 ```bash
 sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certs/rootCA.crt
 ```
@@ -64,7 +68,7 @@ curl -v --cacert certs/rootCA.crt https://app.team1.test:8443/
 ### 2. Browser Padlock Verification
 - Open `https://app.team1.test:8443/` in Safari or Chrome.
 - Verify the secure padlock icon is displayed without security warnings or interstitial screens.
-- Inspect certificate details: issuer must show Team Root CA and SANs must be valid.
+- Inspect certificate details: issuer must show Team Root CA and SANs must match `app.team1.test`.
 
 ---
 
