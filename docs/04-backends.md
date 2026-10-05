@@ -12,8 +12,8 @@ Both Backend A and Backend B execute on **Mac 3**.
 
 | Instance | Host | Port | Launch Command | Identifying Header |
 |---|---|---|---|---|
-| **Backend A** | Mac 3 (`10.7.29.148`) | TCP 3001 | `python3 backend/server.py A 3001` | `X-Backend: A` |
-| **Backend B** | Mac 3 (`10.7.29.148`) | TCP 3002 | `python3 backend/server.py B 3002` | `X-Backend: B` |
+| **Backend A** | Mac 3 (`$MAC3_IP`) | TCP 3001 | `python3 backend/server.py A 3001` | `X-Backend: A` |
+| **Backend B** | Mac 3 (`$MAC3_IP`) | TCP 3002 | `python3 backend/server.py B 3002` | `X-Backend: B` |
 
 Both instances share a single implementation file ([backend/server.py](../backend/server.py)) parameterized by instance name and listening port via command-line arguments:
 
@@ -30,8 +30,8 @@ python3 backend/server.py B 3002
 ## LAN Access from Mac 2 Nginx
 
 Nginx running on **Mac 2** communicates with both backend services over the local area network (LAN):
-- Mac 2 routes traffic to `10.7.29.148:3001` (Backend A on Mac 3)
-- Mac 2 routes traffic to `10.7.29.148:3002` (Backend B on Mac 3)
+- Mac 2 routes traffic to `$MAC3_IP:3001` (Backend A on Mac 3)
+- Mac 2 routes traffic to `$MAC3_IP:3002` (Backend B on Mac 3)
 
 Because both backend processes bind to `0.0.0.0`, they accept socket connections arriving on `en0` across the private subnet (`10.7.x.x`).
 
@@ -76,23 +76,23 @@ The implementation in `backend/server.py` defines the following exact routes:
 
 ## Direct Backend Verification
 
-Before testing through the Mac 2 load balancer, each backend service can be verified directly on Mac 3:
+Before testing through the Mac 2 load balancer, each backend service can be verified directly on Mac 3 (or from a LAN client):
 
 ```bash
 # 1. Verify dynamic status on Backend A
-curl -i http://10.7.29.148:3001/api/status
+curl -i http://$MAC3_IP:3001/api/status
 # Expected: HTTP 200, X-Backend: A, Cache-Control: no-store
 
 # 2. Verify dynamic status on Backend B
-curl -i http://10.7.29.148:3002/api/status
+curl -i http://$MAC3_IP:3002/api/status
 # Expected: HTTP 200, X-Backend: B, Cache-Control: no-store
 
 # 3. Verify cacheable endpoint on Backend A
-curl -i http://10.7.29.148:3001/api/info
+curl -i http://$MAC3_IP:3001/api/info
 # Expected: HTTP 200, X-Backend: A, Cache-Control: public, max-age=60, ETag: "6402143662621d1b"
 
 # 4. Verify cacheable endpoint on Backend B
-curl -i http://10.7.29.148:3002/api/info
+curl -i http://$MAC3_IP:3002/api/info
 # Expected: HTTP 200, X-Backend: B, Cache-Control: public, max-age=60, ETag: "6402143662621d1b"
 ```
 

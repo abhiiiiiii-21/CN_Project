@@ -29,25 +29,28 @@ config/
 
 ---
 
-## Template Placeholders
+## Environment Variables & Template Placeholders
 
-Configurations use standardized placeholders that are replaced during setup:
+Configurations use standardized placeholders that are injected via `./scripts/render-configs.sh` from the deployment environment (`~/cn-team.env`):
 
-| Placeholder | Description | Example Target |
+| Variable / Placeholder | Description | Example / Default Value |
 |---|---|---|
-| `TEAM` | Team identifier / domain namespace | `team1` |
-| `MAC1_IP` | IPv4 address of Mac 1 (Private DNS) | `10.7.21.145` |
-| `MAC2_IP` | IPv4 address of Mac 2 (nginx edge / LB) | `10.7.19.92` |
-| `MAC3_IP` | IPv4 address of Mac 3 (Dual backends) | `10.7.29.148` |
-| `COLLEGE_DNS` | Upstream network DNS resolver | `8.8.8.8` |
-| `CERTIFICATE_PATH`| Absolute path to generated TLS certificate | `/etc/ssl/certs/team1.crt` |
-| `PRIVATE_KEY_PATH`| Absolute path to generated TLS private key | `/etc/ssl/private/team1.key` |
+| `TEAM` | Team identifier / domain namespace | `team1` (`app.$TEAM.test`, `api.$TEAM.test`) |
+| `MAC1_IP` | IPv4 address of Mac 1 (Private DNS :53) | Discovered LAN IP (e.g. `10.7.21.145`) |
+| `MAC2_IP` | IPv4 address of Mac 2 (Nginx Edge / TLS / LB) | Discovered LAN IP (e.g. `10.7.19.92`) |
+| `MAC3_IP` | IPv4 address of Mac 3 (Dual Backends + Wireshark) | Discovered LAN IP (e.g. `10.7.29.148`) |
+| `COLLEGE_DNS` | Upstream network DNS resolver | `8.8.8.8` (or campus resolver) |
+| `CERTIFICATE_PATH`| Path to generated server TLS certificate | `$(brew --prefix)/etc/nginx/certs/app.crt` |
+| `PRIVATE_KEY_PATH`| Path to generated server TLS private key | `$(brew --prefix)/etc/nginx/certs/app.key` |
 
 ---
 
 ## Usage Workflow
 
-1. Copy `cn-team.env.example` to `cn-team.env` (which is excluded from Git tracking via `.gitignore`).
-2. Populate actual discovered LAN IP addresses for Mac 1, Mac 2, and Mac 3.
-3. Run `scripts/render-configs.sh` to generate concrete configuration files into `config/live/`.
+1. Copy `config/cn-team.env.example` to `~/cn-team.env` (or `config/cn-team.env`). Both are excluded from Git tracking via `.gitignore`.
+2. Populate the actual discovered LAN IP addresses for `MAC1_IP`, `MAC2_IP`, and `MAC3_IP`.
+3. Run `./scripts/render-configs.sh` to generate concrete configuration files into `config/live/`:
+   - `config/dnsmasq.conf.template` → `config/live/dnsmasq.conf`
+   - `config/nginx/team-http.conf.template` → `config/live/team-http.conf`
+   - `config/nginx/team-https.conf.template` → `config/live/team-https.conf`
 4. Deploy the rendered configs to the respective machines.

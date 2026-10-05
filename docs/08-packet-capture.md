@@ -6,6 +6,8 @@ Packet capture and protocol inspection are primary tools for verifying network c
 
 The complete Wireshark session capture is stored in the repository as [phase1-full-flow-tls12.pcapng](../evidence/G-packet-capture/phase1-full-flow-tls12.pcapng).
 
+> **Historical Evidence Note:** The IP addresses shown in this packet-capture section (e.g., client `10.7.29.148`, Mac 1 `10.7.21.145`, Mac 2 `10.7.19.92`) correspond to the network configuration used when the capture was recorded. They are historical evidence values and do not necessarily represent the current deployment configuration.
+
 ---
 
 ## Packet Inspection Objectives & Captured Protocols

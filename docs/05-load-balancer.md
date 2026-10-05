@@ -12,12 +12,12 @@ The load balancer upstream pool consists of the two backend instances on **Mac 3
 
 ```nginx
 upstream team_backend {
-    server 10.7.29.148:3001;
-    server 10.7.29.148:3002;
+    server MAC3_IP:3001;
+    server MAC3_IP:3002;
 }
 ```
 
-Both backend instances run concurrently as isolated processes on Mac 3.
+Both backend instances run concurrently as isolated processes on Mac 3. When generating deployable configuration via `./scripts/render-configs.sh`, the placeholder `MAC3_IP` is replaced by the actual host IP defined in `~/cn-team.env` (e.g. `10.7.21.145`).
 
 ---
 
@@ -37,10 +37,10 @@ Nginx injects standard proxy headers into the upstream request:
 
 ### 2. Round-Robin Distribution
 By default, Nginx distributes incoming client requests across the upstream servers in round-robin fashion:
-- Upstream target 1: `10.7.29.148:3001` (Backend A on Mac 3)
-- Upstream target 2: `10.7.29.148:3002` (Backend B on Mac 3)
+- Upstream target 1: `$MAC3_IP:3001` (Backend A on Mac 3)
+- Upstream target 2: `$MAC3_IP:3002` (Backend B on Mac 3)
 
-> **Note on Sequence:** While round-robin scheduling balances load evenly across backend workers, connection keep-alive, TCP session reuse, or HTTP/2 stream multiplexing from a single client can influence the observed distribution sequence. A strictly alternating sequence is not guaranteed under all connection patterns, but overall distribution balances across both backends.
+> **Note on Sequence:** While round-robin scheduling balances load evenly across backend workers, connection keep-alive, TCP session reuse, or HTTP/2 stream multiplexing from a single client can influence the observed distribution sequence. A strictly alternating sequence is an observed lab result under discrete connections, not a universal protocol guarantee under all connection patterns. Overall distribution balances across both backends.
 
 ### 3. High-Availability Failover
 Failover is controlled via Nginx upstream error handling directives:

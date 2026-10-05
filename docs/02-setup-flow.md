@@ -55,23 +55,23 @@ ipconfig getifaddr en0
 Verify ping reachability between all three nodes:
 ```bash
 # From Mac 1 / Mac 2 / Mac 3:
-ping -c 3 10.7.21.145   # Mac 1
-ping -c 3 10.7.19.92    # Mac 2
-ping -c 3 10.7.29.148   # Mac 3
+ping -c 3 $MAC1_IP   # Mac 1 (DNS)
+ping -c 3 $MAC2_IP   # Mac 2 (Nginx Edge / TLS)
+ping -c 3 $MAC3_IP   # Mac 3 (Backends A & B)
 ```
 
 ### 1.3 Initialize Environment File
 On each machine, copy the template and configure the current network values:
 ```bash
-cp config/cn-team.env.example config/cn-team.env
+cp config/cn-team.env.example ~/cn-team.env
 ```
-Populate `config/cn-team.env`:
+Populate `~/cn-team.env` with your network's IP assignments:
 ```bash
 export TEAM=team1
-export MAC1_IP=10.7.21.145
-export MAC2_IP=10.7.19.92
-export MAC3_IP=10.7.29.148
-export COLLEGE_DNS=8.8.8.8
+export MAC1_IP=<Mac_1_IP>      # e.g., 10.7.21.145
+export MAC2_IP=<Mac_2_IP>      # e.g., 10.7.19.92
+export MAC3_IP=<Mac_3_IP>      # e.g., 10.7.29.148
+export COLLEGE_DNS=<Upstream>  # e.g., 8.8.8.8
 ```
 
 ---
@@ -142,17 +142,20 @@ On **Mac 2**, set up the HTTP reverse proxy and load balancer:
 1. Install `nginx` (e.g. `brew install nginx`).
 2. Test network connectivity from Mac 2 to both backends on Mac 3:
    ```bash
-   nc -zv 10.7.29.148 3001
-   nc -zv 10.7.29.148 3002
+   nc -zv $MAC3_IP 3001
+   nc -zv $MAC3_IP 3002
    ```
-3. Render or configure `config/nginx/team-http.conf.template` with Mac 3's IP.
-4. Start nginx:
+3. Render configurations from environment:
    ```bash
-   sudo nginx -c $(pwd)/config/live/team-http.conf
+   ./scripts/render-configs.sh ~/cn-team.env
+   ```
+4. Start nginx with the rendered configurations:
+   ```bash
+   sudo nginx -c $(brew --prefix)/etc/nginx/nginx.conf
    ```
 5. Test HTTP ingress on port 8080:
    ```bash
-   curl -i http://10.7.19.92:8080/
+   curl -i http://$MAC2_IP:8080/
    ```
 
 ---
@@ -161,8 +164,8 @@ On **Mac 2**, set up the HTTP reverse proxy and load balancer:
 
 On **Mac 2**, configure TLS termination for port 8443:
 
-1. Generate Root CA and server certificates with SAN (`DNS:app.team1.test`, `DNS:api.team1.test`) using `scripts/make-certs.sh`.
-2. Configure `ssl_certificate` and `ssl_certificate_key` directives in the Nginx configuration.
+1. Generate Root CA and server certificates with SAN (`DNS:app.$TEAM.test`, `DNS:api.$TEAM.test`) using `scripts/make-certs.sh`.
+2. Certificates and keys are placed in `$(brew --prefix)/etc/nginx/certs/`.
 3. Reload Nginx:
    ```bash
    sudo nginx -s reload
@@ -176,16 +179,16 @@ On **Mac 2**, configure TLS termination for port 8443:
 
 ## Step 6: Configure Mac 2 and Mac 3 to Use Mac 1 DNS
 
-Point system DNS resolvers on Mac 2 and Mac 3 to Mac 1 (`10.7.21.145`):
+Point system DNS resolvers on Mac 2 and Mac 3 to Mac 1 (`$MAC1_IP`):
 
 ```bash
 # macOS CLI DNS configuration for Wi-Fi service
-sudo networksetup -setdnsservers Wi-Fi 10.7.21.145 8.8.8.8
+sudo networksetup -setdnsservers Wi-Fi $MAC1_IP $COLLEGE_DNS
 ```
 
-Verify that `app.team1.test` and `api.team1.test` resolve to Mac 2 (`10.7.19.92`):
+Verify that `app.$TEAM.test` and `api.$TEAM.test` resolve to Mac 2 (`$MAC2_IP`):
 ```bash
-dscacheutil -q host -a name app.team1.test
+dscacheutil -q host -a name app.$TEAM.test
 ```
 
 ---
@@ -210,7 +213,7 @@ Run the end-to-end verification suite from the client machine (or Mac 1):
 
 1. **DNS Lookup:**
    ```bash
-   dig @10.7.21.145 app.team1.test +short
+   dig @$MAC1_IP app.$TEAM.test +short
    ```
 2. **HTTP Redirection & Load Balancing:**
    ```bash

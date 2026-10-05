@@ -27,7 +27,7 @@ A robust distributed network platform must demonstrate resilience, graceful degr
 ---
 
 ### F2: Wrong DNS Record
-- **Scenario:** The client queries a DNS record that mistakenly resolves `app.team1.test` to Mac 3 (`10.7.29.148`) instead of the edge proxy Mac 2 (`10.7.19.92`).
+- **Scenario (Deliberate Failure Configuration):** The client queries a DNS record that mistakenly resolves `app.team1.test` to an incorrect host (Mac 3, historically `10.7.29.148`) instead of the edge proxy Mac 2 (`$MAC2_IP`).
 - **Expected Outcome:** The client resolves the address, but TCP connection to port 8443 fails because Mac 3 only runs backend services on ports 3001/3002 and does not listen on port 8443.
 - **Reproduction Commands:**
   ```bash
@@ -36,8 +36,8 @@ A robust distributed network platform must demonstrate resilience, graceful degr
   dig +short app.$TEAM.test
   /usr/bin/curl -sS https://app.$TEAM.test:8443/api/status
   ```
-- **Observed Result (Evidence-Verified):**
-  - `dig +short` returned `10.7.29.148` (Mac 3).
+- **Observed Result (Evidence-Verified from Historical Test Configuration):**
+  - `dig +short` returned `10.7.29.148` (the deliberate incorrect DNS target used for demonstration).
   - Curl reported: `curl: (7) Failed to connect to app.team1.test port 8443 after 12 ms: Couldn't connect to server`.
   - Demonstrates that incorrect DNS host mapping routes client traffic to the wrong tier, causing TCP connection establishment failures.
   - **Evidence Artifact:** [F2-wrong-dns.png](../evidence/failures/F2-wrong-dns.png)

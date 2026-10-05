@@ -24,12 +24,12 @@ Both backend application services (Backend A and Backend B) run as separate conc
 
 Reusable templates decouple host addresses using environment variable placeholders:
 
-| Host Designation | Variable Placeholder | Current LAN IP | Assigned Role |
+| Host Designation | Variable Placeholder | Role / Services | Tested Deployment IP (Environment-Specific) |
 |---|---|---|---|
-| Mac 1 | `MAC1_IP` | `10.7.21.145` | Private DNS Resolver (`dnsmasq`) & Client |
-| Mac 2 | `MAC2_IP` | `10.7.19.92` | Nginx Edge / Reverse Proxy / TLS Load Balancer |
-| Mac 3 | `MAC3_IP` | `10.7.29.148` | Dual Application Backends (`:3001`, `:3002`) & Wireshark Capture |
-| Upstream DNS | `COLLEGE_DNS` | `8.8.8.8` | Campus / Upstream Fallback DNS Resolver |
+| Mac 1 | `MAC1_IP` | Private DNS Resolver (`dnsmasq` :53) & Client | `10.7.21.145` |
+| Mac 2 | `MAC2_IP` | Nginx Edge / Reverse Proxy / TLS Load Balancer (:8080, :8443) | `10.7.19.92` |
+| Mac 3 | `MAC3_IP` | Dual Application Backends (`:3001`, `:3002`) & Wireshark Capture | `10.7.29.148` |
+| Upstream DNS | `COLLEGE_DNS` | Campus / Upstream Fallback DNS Resolver | `8.8.8.8` |
 
 ---
 
@@ -72,7 +72,7 @@ flowchart TD
     ▼
 [ Mac 1: Private DNS (dnsmasq :53) ]
     │
-    │ 2. Resolves "app.team1.test" -> Mac 2 IP (10.7.19.92)
+    │ 2. Resolves "app.team1.test" -> Mac 2 IP ($MAC2_IP)
     ▼
 [ Client ]
     │
@@ -112,7 +112,7 @@ The multi-tier architecture exercises all major layers of the TCP/IP stack:
 
 ## Implementation & Testing Notes
 
-- **Node Allocations & IP Assignments:** Verified across Mac 1 (`10.7.21.145`), Mac 2 (`10.7.19.92`), and Mac 3 (`10.7.29.148`).
+- **Node Allocations & IP Assignments:** Decoupled via `MAC1_IP`, `MAC2_IP`, and `MAC3_IP`. Historical capture traces in `evidence/` reflect recorded addresses during lab runs.
 - **Packet Flow Verification:** Completed and stored in `evidence/G-packet-capture/phase1-full-flow-tls12.pcapng`.
 - **MTU & Link Speed Benchmarks:** *Not measured in Phase 1*.
 - **Inter-node Latency Benchmarks:** *Not measured in Phase 1*.

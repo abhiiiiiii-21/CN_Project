@@ -52,10 +52,10 @@ Both backend instances (`Backend A` on port `3001` and `Backend B` on port `3002
 
 Mac 1 acts as the authoritative private DNS resolver (`dnsmasq`) for the `.test` domain namespace:
 
-- `app.team1.test` → Mac 2 IP (`10.7.19.92`)
-- `api.team1.test` → Mac 2 IP (`10.7.19.92`)
+- `app.$TEAM.test` → Mac 2 IP (`$MAC2_IP`)
+- `api.$TEAM.test` → Mac 2 IP (`$MAC2_IP`)
 
-Any external queries (e.g. `google.com`) are forwarded upstream to `COLLEGE_DNS` (`8.8.8.8`) and Cloudflare DNS (`1.1.1.1`).
+Any external queries (e.g. `google.com`) are forwarded upstream to `COLLEGE_DNS` (configured upstream resolver) and fallback DNS (`1.1.1.1`).
 
 ---
 
@@ -147,19 +147,19 @@ CN_Project/
 
 ---
 
-## Current Network Values
+## Configuration & Environment Variables
 
-All machine IP addresses and network variables are decoupled from reusable configuration templates:
+All machine IP addresses and network variables are decoupled from reusable configuration templates. The active deployment environment is configured through `~/cn-team.env` (or `config/cn-team.env` via [config/cn-team.env.example](config/cn-team.env.example)):
 
-| Variable | Description | Current Value (Subject to change) |
-|---|---|---|
-| `TEAM` | Team namespace | `team1` |
-| `MAC1_IP` | Mac 1 IPv4 (Private DNS) | `10.7.21.145` |
-| `MAC2_IP` | Mac 2 IPv4 (Edge Nginx / LB) | `10.7.19.92` |
-| `MAC3_IP` | Mac 3 IPv4 (Dual Backends + Wireshark) | `10.7.29.148` |
-| `COLLEGE_DNS` | Upstream DNS resolver | `8.8.8.8` |
+| Variable | Description | Reusable Architectural Role | Current Tested Environment (Subject to change) |
+|---|---|---|---|
+| `TEAM` | Team namespace | Subdomain prefix (`app.$TEAM.test`, `api.$TEAM.test`) | `team1` |
+| `MAC1_IP` | Mac 1 IPv4 | Private DNS resolver (`dnsmasq` on port 53) | `10.7.21.145` |
+| `MAC2_IP` | Mac 2 IPv4 | Nginx edge proxy & TLS load balancer (:8080, :8443) | `10.7.19.92` |
+| `MAC3_IP` | Mac 3 IPv4 | Host for Backend A (:3001) & Backend B (:3002) + Wireshark | `10.7.29.148` |
+| `COLLEGE_DNS` | Upstream DNS resolver | Forwarding DNS resolver for external lookups | `8.8.8.8` |
 
-> **Architecture Note:** Both Backend A (`:3001`) and Backend B (`:3002`) run on Mac 3 (`MAC3_IP`). There is no Mac 4.
+> **Architecture Note:** Both Backend A (`:3001`) and Backend B (`:3002`) run concurrently on the same host (Mac 3, `$MAC3_IP`). There is NO Mac 4. Historical packet capture and failure demonstration traces preserve their original recorded addresses as historical evidence.
 
 ---
 

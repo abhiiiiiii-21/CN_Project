@@ -17,14 +17,14 @@ The platform uses **Mac 1** as a dedicated private Domain Name System (DNS) serv
 
 ## Domain Namespace and Records
 
-The internal domain namespace is configured as `team1.test`:
+The internal domain namespace is configured for `$TEAM.test` (e.g., `team1.test`):
 
 | Fully Qualified Domain Name (FQDN) | Record Type | Target Address | Purpose |
 |---|---|---|---|
-| `app.team1.test` | A | `10.7.19.92` (`MAC2_IP`) | Web application ingress at Mac 2 edge |
-| `api.team1.test` | A | `10.7.19.92` (`MAC2_IP`) | API service ingress at Mac 2 edge |
+| `app.$TEAM.test` | A | `$MAC2_IP` (e.g., `10.7.19.92`) | Web application ingress at Mac 2 edge |
+| `api.$TEAM.test` | A | `$MAC2_IP` (e.g., `10.7.19.92`) | API service ingress at Mac 2 edge |
 
-Both local domain names resolve directly to the **Mac 2 edge proxy**, which terminates TLS and load-balances across the backend services on Mac 3.
+Both local domain names resolve directly to the **Mac 2 edge proxy** (`$MAC2_IP`), which terminates TLS and load-balances across the backend services on Mac 3. Under no circumstances do domain records point directly to Mac 3.
 
 ---
 

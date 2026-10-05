@@ -98,7 +98,7 @@ HTTP/2 304
 x-backend: A
 cache-control: public, max-age=60
 etag: "6402143662621d1b"
-x-upstream-addr: 10.7.29.148:3001
+x-upstream-addr: $MAC3_IP:3001
 ```
 *(Response body is empty; status code is 304).*
 
@@ -111,7 +111,7 @@ x-upstream-addr: 10.7.29.148:3001
 HTTP/2 200
 x-backend: A
 cache-control: no-store
-x-upstream-addr: 10.7.29.148:3001
+x-upstream-addr: $MAC3_IP:3001
 ```
 
 ---

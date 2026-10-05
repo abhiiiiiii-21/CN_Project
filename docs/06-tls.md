@@ -66,7 +66,7 @@ Testing HTTPS without the `-k` (insecure) flag:
 ```bash
 /usr/bin/curl -v https://app.team1.test:8443/api/status
 ```
-**Observed Output (from evidence):**
+**Historical Observed Output (Captured from evidence artifact `evidence/E-tls/curl-tls.jpeg`):**
 ```text
 * Host app.team1.test was resolved.
 * IPv4: 10.7.19.92
@@ -88,6 +88,7 @@ Testing HTTPS without the `-k` (insecure) flag:
 < x-upstream-addr: 10.7.29.148:3001
 {"backend": "A", "status": "ok", "time": "2026-10-05T15:02:54.067897+00:00"}
 ```
+*(Note: The IP address in `x-upstream-addr` corresponds to the historical Mac 3 host IP recorded when this verification screenshot was captured; in current deployments, this reflects the active `$MAC3_IP`).*
 
 ### 2. Browser Padlock Verification
 - Navigate to `https://app.team1.test:8443/api/status` in Google Chrome or Safari.
