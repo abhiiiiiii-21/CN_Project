@@ -2,47 +2,70 @@
 
 ## Overview
 
-Packet capture and protocol inspection are primary tools for verifying network correctness across the platform. **Mac 3** runs **Wireshark** to capture ingress traffic to backends (ports 3001/3002) and observe local network interactions. Additional captures on Mac 1 or client machines analyze DNS exchanges and TLS handshakes.
+Packet capture and protocol inspection are primary tools for verifying network correctness across the platform. Traffic was captured on the shared network using **Wireshark** on **Mac 3**, recording end-to-end interactions across the DNS, TCP, TLS, and HTTP application layers.
+
+The complete Wireshark session capture is stored in the repository as [phase1-full-flow-tls12.pcapng](../evidence/G-packet-capture/phase1-full-flow-tls12.pcapng).
 
 ---
 
-## Packet Inspection Objectives
+## Packet Inspection Objectives & Captured Protocols
 
-The packet captures document five critical network protocol transitions:
-1. **DNS Resolution:** Client querying Mac 1 on UDP port 53.
-2. **TCP Connection Establishment:** Standard 3-way handshake (`SYN`, `SYN-ACK`, `ACK`).
-3. **TLS Handshake:** Cryptographic negotiation, certificate validation, and key exchange between client and Mac 2 on port 8443.
-4. **HTTP Flow:** Plaintext HTTP request/response payloads exchanged between the Mac 2 reverse proxy and Mac 3 backends.
-5. **TLS 1.2 Protocol Capture:** Inspection of distinct handshake records characteristic of TLS 1.2.
+### 1. DNS Resolution (UDP Port 53)
+- **Observed Flow:**
+  - Client (`10.7.29.148`) dispatches standard DNS query `0x4e5f` for `app.team1.test` to Mac 1 (`10.7.21.145:53`).
+  - Mac 1 responds with standard query response returning IPv4 address `10.7.19.92` (Mac 2 edge proxy).
+- **Wireshark Display Filter:** `dns.qry.name contains "test"`
+- **Evidence Artifact:** [ws-dns.png](../evidence/G-packet-capture/ws-dns.png)
+
+### 2. TCP Connection Establishment (3-Way Handshake)
+- **Observed Flow:**
+  - Ingress connection initiated between client (`10.7.29.148`) and Mac 2 edge proxy (`10.7.19.92:8443`).
+  - Standard 3-way handshake captured: `[SYN, ECE, CWR]` -> `[SYN, ACK, ECE]` -> `[ACK]`.
+- **Wireshark Display Filter:** `tcp.port == 8443 && tcp.flags.syn == 1`
+- **Evidence Artifact:** [ws-tcp.png](../evidence/G-packet-capture/ws-tcp.png)
+
+### 3. TLS 1.2 Handshake & Negotiation
+- **Observed Flow:**
+  - Client Hello: advertises supported cipher suites and SNI (`app.team1.test`).
+  - Server Hello & Certificate: Mac 2 edge proxy returns server certificate issued by `team1 Local Root CA`.
+  - Server Key Exchange & Server Hello Done.
+  - Client Key Exchange, Change Cipher Spec, and Encrypted Handshake Message.
+- **Wireshark Display Filter:** `tls.handshake`
+- **Evidence Artifact:** [ws-tls.png](../evidence/G-packet-capture/ws-tls.png)
+
+### 4. Encrypted Application Data
+- **Observed Flow:**
+  - Subsequent application traffic traversing port 8443 is fully encrypted under TLS 1.2 record type 23 (Application Data), verifying channel privacy across the LAN.
+- **Wireshark Display Filter:** `tls.record.content_type == 23`
+- **Evidence Artifact:** [ws-encrypted.png](../evidence/G-packet-capture/ws-encrypted.png)
+
+### 5. Plaintext Upstream HTTP & Connection Termination
+- **Observed Flow:**
+  - Mac 2 reverse proxy (`10.7.19.92:57916`) forwards decrypted plaintext request `GET /api/status HTTP/1.1` to Mac 3 Backend A (`10.7.29.148:3001`).
+  - Backend A responds with `HTTP/1.0 200 OK`, `X-Backend: A`, `Cache-Control: no-store`, and JSON status body.
+  - Connection teardown via TCP `FIN, ACK` sequence.
+- **Wireshark Display Filter:** `tcp.port == 3001`
+- **Evidence Artifacts:**
+  - [ws-flow-graph.png](../evidence/G-packet-capture/ws-flow-graph.png): Wireshark flow graph illustrating request, response, and packet directions.
+  - [ws-termination.png](../evidence/G-packet-capture/ws-termination.png): Frame listing of upstream HTTP session and TCP connection teardown.
 
 ---
 
-## Capture Filters & Wireshark Display Filters
+## Evidence Artifacts Index
 
-| Analysis Target | Display Filter | Key Fields & Observations |
+| Evidence File | Protocol Analyzed | Description |
 |---|---|---|
-| **DNS Resolution** | `dns` or `udp.port == 53` | Query record (`app.team1.test`), response Answer A record pointing to `MAC2_IP`. |
-| **TCP 3-Way Handshake** | `tcp.flags.syn == 1` or `tcp.port in {8080, 8443, 3001, 3002}` | Sequence numbers (`seq=0`), ACK flag, window scale options. |
-| **TLS Handshake** | `tls` or `ssl` | Client Hello (SNI, cipher suites), Server Hello, Certificate chain, Server Key Exchange, Finished. |
-| **TLS 1.2 Specifics** | `tls.record.version == 0x0303` | Explicit Key Exchange and Certificate messages visible before encryption begins. |
-| **Backend HTTP Traffic** | `http and (tcp.port == 3001 or tcp.port == 3002)` | Request headers forwarded by Mac 2 (`X-Forwarded-For`, `Host`), response headers (`X-Backend`, `ETag`). |
+| `phase1-full-flow-tls12.pcapng` | Complete Flow | Raw Wireshark packet capture file covering DNS, TCP, TLS, and HTTP |
+| `ws-dns.png` | DNS (UDP :53) | Query and response mapping `app.team1.test` to `10.7.19.92` |
+| `ws-tcp.png` | TCP Handshake | SYN and SYN-ACK frames establishing connection on port 8443 |
+| `ws-tls.png` | TLS 1.2 Handshake | Client Hello, Server Hello, Certificate chain, and Key Exchange |
+| `ws-encrypted.png` | TLS Record Layer | Encrypted Application Data packets (Type 23) |
+| `ws-flow-graph.png` | HTTP Flow Graph | End-to-end visual exchange between Nginx proxy and Backend A |
+| `ws-termination.png` | TCP Teardown | HTTP 200 response delivery and FIN/ACK connection closing |
 
 ---
 
-## Packet Capture Procedure (Mac 3)
+## Implementation & Testing Notes
 
-1. Launch Wireshark on **Mac 3**:
-   - Select primary active network interface (`en0`).
-   - Set capture filter: `tcp port 3001 or tcp port 3002`.
-2. Generate client traffic from Mac 1 or external test client.
-3. Stop capture in Wireshark and save session file as `mac3-backend-capture.pcapng`.
-4. Apply display filters to isolate specific sessions, export screenshots, and annotate protocol frames.
-
----
-
-## TODO: Future Implementation & Documentation
-
-- [ ] Execute synchronized packet capture across client, Mac 1, and Mac 3 during automated demo.
-- [ ] Save `.pcapng` capture files into `evidence/G-packet-capture/`.
-- [ ] Take annotated screenshots of DNS exchange, TCP handshake, TLS handshake, and HTTP payload.
-- [ ] Document packet round-trip time (RTT) and TCP window sizing observations.
+- Packet Round-Trip Time (RTT) and TCP window scaling variations under congestion: *Not measured in Phase 1*.
+- All protocol captures were performed on interface `en0` and verified in Wireshark.

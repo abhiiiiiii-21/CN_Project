@@ -128,8 +128,8 @@ Both backend instances run concurrently on **Mac 3**.
    ```
 4. Verify both backends respond locally on Mac 3:
    ```bash
-   curl -i http://127.0.0.1:3001/status
-   curl -i http://127.0.0.1:3002/status
+   curl -i http://127.0.0.1:3001/api/status
+   curl -i http://127.0.0.1:3002/api/status
    ```
    Confirm that each response includes its respective `X-Backend: A` and `X-Backend: B` headers.
 
@@ -169,7 +169,7 @@ On **Mac 2**, configure TLS termination for port 8443:
    ```
 4. Trust the Root CA on Mac 1 and test clients:
    ```bash
-   sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain certs/rootCA.crt
+   sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ~/team-certs/team-CA.pem
    ```
 
 ---
@@ -212,28 +212,34 @@ Run the end-to-end verification suite from the client machine (or Mac 1):
    ```bash
    dig @10.7.21.145 app.team1.test +short
    ```
-2. **HTTP Load Balancing:**
+2. **HTTP Redirection & Load Balancing:**
    ```bash
-   for i in {1..4}; do curl -sI http://app.team1.test:8080/ | grep -i "X-Backend:"; done
+   curl -i http://app.team1.test:8080/
+   # Expect 301 Redirect to https://app.team1.test:8443/
+
+   for i in {1..4}; do /usr/bin/curl -s https://app.team1.test:8443/api/status; echo; done
    ```
-   *Expect alternating `X-Backend: A` and `X-Backend: B`.*
-3. **HTTPS Verification:**
+   *Expect load distribution across `X-Backend: A` and `X-Backend: B`.*
+3. **HTTPS Verification (using System Keychain):**
    ```bash
-   curl -i --cacert certs/rootCA.crt https://app.team1.test:8443/
+   /usr/bin/curl -i https://app.team1.test:8443/api/status
    ```
-4. **Caching & 304:**
+4. **Caching & 304 Revalidation:**
    ```bash
-   ETAG=$(curl -sI http://app.team1.test:8080/ | grep -i "ETag:" | awk '{print $2}' | tr -d '\r')
-   curl -i -H "If-None-Match: $ETAG" http://app.team1.test:8080/
+   ETAG=$(/usr/bin/curl -sI https://app.team1.test:8443/api/info | grep -i "^ETag:" | awk '{print $2}' | tr -d '\r')
+   /usr/bin/curl -i -H "If-None-Match: $ETAG" https://app.team1.test:8443/api/info
    ```
-   *Expect `HTTP/1.1 304 Not Modified`.*
-5. **Stop Wireshark capture** on Mac 3 and save the `.pcapng` session into `evidence/G-packet-capture/`.
+   *Expect `HTTP/2 304 Not Modified` with empty body.*
+5. **Automated Verification:**
+   ```bash
+   ./scripts/demo.sh all
+   ```
+6. **Stop Wireshark capture** on Mac 3 and save the session file into `evidence/G-packet-capture/`.
 
 ---
 
-## TODO: Future Implementation & Documentation
+## Implementation & Testing Notes
 
-- [ ] Write pre-flight connectivity verification script into `scripts/`.
-- [ ] Add systemd/launchd service configuration notes for background operation if required.
-- [ ] Document firewall/SIP considerations on macOS (`pfctl`, macOS Application Firewall).
-- [ ] Record exact interface names (`en0` vs `en1`) for each Mac in the lab environment.
+- Pre-flight connectivity verification script implemented in `scripts/demo.sh` (`./scripts/demo.sh lan` or `./scripts/demo.sh check`).
+- Network interface confirmed as `en0` on all three physical Macs.
+- Firewall / SIP considerations: Verified that macOS Application Firewall allows inbound connections on ports 53 (`dnsmasq`), 8080/8443 (`nginx`), and 3001/3002 (`python3`).

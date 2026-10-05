@@ -15,7 +15,7 @@ Both Backend A and Backend B execute on **Mac 3**.
 | **Backend A** | Mac 3 (`10.7.29.148`) | TCP 3001 | `python3 backend/server.py A 3001` | `X-Backend: A` |
 | **Backend B** | Mac 3 (`10.7.29.148`) | TCP 3002 | `python3 backend/server.py B 3002` | `X-Backend: B` |
 
-Both instances share a single implementation file (`backend/server.py`) parameterized by instance name and listening port via command-line arguments:
+Both instances share a single implementation file ([backend/server.py](../backend/server.py)) parameterized by instance name and listening port via command-line arguments:
 
 ```bash
 # Terminal 1 on Mac 3: Backend A
@@ -40,43 +40,73 @@ Because both backend processes bind to `0.0.0.0`, they accept socket connections
 ## Response Headers & Behavior
 
 Every HTTP response produced by the backend includes metadata headers to allow the edge proxy and client to distinguish which backend handled the request:
+- `X-Backend: A` when served by instance A
+- `X-Backend: B` when served by instance B
 
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json; charset=utf-8
-Content-Length: 320
-X-Backend: A
-ETag: "4ccee0b9ba9bdda2ff421ac57a251249"
-Cache-Control: public, max-age=60
-```
+### Endpoints Supported by `backend/server.py`
 
-- When contacting instance A directly or via proxy: `X-Backend: A`
-- When contacting instance B directly or via proxy: `X-Backend: B`
+The implementation in `backend/server.py` defines the following exact routes:
 
-### Endpoints Supported by `server.py`
-1. `GET /`: Cacheable index payload containing service metadata, `ETag`, and `Cache-Control: public, max-age=60`. Evaluates `If-None-Match` and returns `304 Not Modified` when hashes match.
-2. `GET /status` or `GET /health`: Dynamic JSON status payload with server timestamp, uptime, client IP, and `Cache-Control: no-store, no-cache, must-revalidate`.
-3. `GET /api`: API service metadata endpoint.
+1. **`GET /` — Basic Backend Response**
+   - Returns JSON containing server confirmation and local hostname:
+     ```json
+     {"message": "Backend A is running", "host": "Kapishs-MacBook-Pro-2.local"}
+     ```
+   - Headers: `Content-Type: application/json`, `X-Backend: A` (or `B`).
+
+2. **`GET /api/status` — Dynamic Status Endpoint**
+   - Returns real-time timestamp and operational status:
+     ```json
+     {"backend": "A", "status": "ok", "time": "2026-10-05T16:33:43.364592+00:00"}
+     ```
+   - Headers: `Cache-Control: no-store`, `Content-Type: application/json`, `X-Backend: A` (or `B`).
+   - Ensures clients and proxies never cache live health and status information.
+
+3. **`GET /api/info` — Cacheable Static Metadata Endpoint**
+   - Returns service metadata identical across backends:
+     ```json
+     {"service": "team-app", "version": "1.0.0", "note": "This content is identical on every backend"}
+     ```
+   - Headers: `Cache-Control: public, max-age=60`, `ETag: "6402143662621d1b"`, `X-Backend: A` (or `B`).
+   - Evaluates incoming `If-None-Match` header: if the ETag matches, replies with `304 Not Modified` and an empty body.
+
+*(Note: Legacy paths such as `/status`, `/health`, or `/api` are not implemented in `backend/server.py` and return `404 {"error": "not found"}` with the identifying `X-Backend` header).*
 
 ---
 
 ## Direct Backend Verification
 
-Before testing through the Mac 2 load balancer, each backend service can be verified directly:
+Before testing through the Mac 2 load balancer, each backend service can be verified directly on Mac 3:
 
 ```bash
-# From Mac 3 (locally) or Mac 2 (over LAN):
-curl -i http://10.7.29.148:3001/
-# Verify HTTP 200 and header 'X-Backend: A'
+# 1. Verify dynamic status on Backend A
+curl -i http://10.7.29.148:3001/api/status
+# Expected: HTTP 200, X-Backend: A, Cache-Control: no-store
 
-curl -i http://10.7.29.148:3002/
-# Verify HTTP 200 and header 'X-Backend: B'
+# 2. Verify dynamic status on Backend B
+curl -i http://10.7.29.148:3002/api/status
+# Expected: HTTP 200, X-Backend: B, Cache-Control: no-store
+
+# 3. Verify cacheable endpoint on Backend A
+curl -i http://10.7.29.148:3001/api/info
+# Expected: HTTP 200, X-Backend: A, Cache-Control: public, max-age=60, ETag: "6402143662621d1b"
+
+# 4. Verify cacheable endpoint on Backend B
+curl -i http://10.7.29.148:3002/api/info
+# Expected: HTTP 200, X-Backend: B, Cache-Control: public, max-age=60, ETag: "6402143662621d1b"
 ```
 
 ---
 
-## TODO: Future Implementation & Documentation
+## Evidence Artifacts
 
-- [ ] Measure individual backend response latencies under concurrent load.
-- [ ] Add JSON response payload format specifications (`instance`, `timestamp`, `client_ip`, `uptime`).
-- [ ] Record direct verification terminal logs in `evidence/C-backends/`.
+Direct verification has been executed and confirmed:
+- [backend-a.png](../evidence/C-backends/backend-a.png): Shows Backend A process listening on `:3001`, returning `X-Backend: A`, `/api/status` with `no-store`, and `/api/info` with `ETag: "6402143662621d1b"`.
+- [backend-b.png](../evidence/C-backends/backend-b.png): Shows Backend B process listening on `:3002`, returning `X-Backend: B`, `/api/status`, and matching `ETag` on `/api/info`.
+
+---
+
+## Implementation & Testing Notes
+
+- Concurrent load response latency benchmarks: *Not measured in Phase 1*.
+- Payload formats and route handlers are fully implemented and verified in `backend/server.py`.

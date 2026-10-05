@@ -2,78 +2,106 @@
 
 ## Overview
 
-A robust distributed network platform must demonstrate resilience, graceful degradation, and informative failure modes when faults occur. This document defines five specific failure scenarios (F1 through F5) evaluated during project testing across the three-Mac topology.
-
-> **Note:** Do not fabricate test results in advance. Outputs, traces, and screenshots will be captured and documented in `evidence/failures/` during actual execution.
+A robust distributed network platform must demonstrate resilience, graceful degradation, and informative failure modes when faults occur. This document defines five specific failure scenarios (F1 through F5) evaluated during project testing across the three-Mac topology, with actual observed results and evidence references.
 
 ---
 
-## Failure Scenarios
+## Failure Scenarios & Observed Evidence
 
 ### F1: Wrong DNS Server
-- **Scenario:** The client attempts to query a DNS server other than Mac 1 (such as `8.8.8.8` or another LAN host) for the internal domain `app.team1.test`.
-- **Expected Outcome:** DNS lookup fails with `NXDOMAIN` or query timeout because external resolvers have no authoritative knowledge of `.test` private records.
-- **Reproduction Command:**
+- **Scenario:** The client attempts to query an external DNS resolver (`8.8.8.8`) instead of the private Mac 1 DNS server (`10.7.21.145`) for the private internal domain `app.team1.test`.
+- **Expected Outcome:** DNS lookup fails with `NXDOMAIN` because external public resolvers have no authoritative knowledge of the private `.test` zone. LAN connectivity remains intact.
+- **Reproduction Commands:**
   ```bash
-  # Query an external or wrong DNS server
-  dig @8.8.8.8 app.team1.test
+  sudo networksetup -setdnsservers Wi-Fi $COLLEGE_DNS
+  sudo dscacheutil -flushcache
+  sudo killall -HUP mDNSResponder
+  dig app.$TEAM.test
+  ping -c 2 $MAC2_IP
   ```
-- **Observed Result:** *(TODO: Record output during testing)*
+- **Observed Result (Evidence-Verified):**
+  - DiG query to `8.8.8.8#53` returned status `NXDOMAIN` with 0 answers and root server SOA authority (`a.root-servers.net`).
+  - ICMP ping to Mac 2 (`10.7.19.92`) succeeded with 0.0% packet loss, confirming the local area network was fully operational and isolating the issue specifically to name resolution.
+    - **Evidence Artifact:** [F1-wrong-dns-server.png](../evidence/failures/F1-wrong-dns-server.png)
 
 ---
 
 ### F2: Wrong DNS Record
-- **Scenario:** The client queries Mac 1 for a subdomain that does not exist in `dnsmasq.conf` (e.g., `invalid.team1.test`).
-- **Expected Outcome:** `dnsmasq` on Mac 1 responds with `NXDOMAIN` (non-existent domain).
-- **Reproduction Command:**
+- **Scenario:** The client queries a DNS record that mistakenly resolves `app.team1.test` to Mac 3 (`10.7.29.148`) instead of the edge proxy Mac 2 (`10.7.19.92`).
+- **Expected Outcome:** The client resolves the address, but TCP connection to port 8443 fails because Mac 3 only runs backend services on ports 3001/3002 and does not listen on port 8443.
+- **Reproduction Commands:**
   ```bash
-  dig @10.7.21.145 invalid.team1.test
+  sudo dscacheutil -flushcache
+  sudo killall -HUP mDNSResponder
+  dig +short app.$TEAM.test
+  /usr/bin/curl -sS https://app.$TEAM.test:8443/api/status
   ```
-- **Observed Result:** *(TODO: Record output during testing)*
+- **Observed Result (Evidence-Verified):**
+  - `dig +short` returned `10.7.29.148` (Mac 3).
+  - Curl reported: `curl: (7) Failed to connect to app.team1.test port 8443 after 12 ms: Couldn't connect to server`.
+  - Demonstrates that incorrect DNS host mapping routes client traffic to the wrong tier, causing TCP connection establishment failures.
+  - **Evidence Artifact:** [F2-wrong-dns.png](../evidence/failures/F2-wrong-dns.png)
 
 ---
 
 ### F3: Backend A Down (Single Node Failover on Mac 3)
 - **Scenario:** The **Backend A** process on **Mac 3** (`:3001`) is terminated, while **Backend B** (`:3002`) on the same Mac 3 remains running and healthy.
-- **Expected Outcome:** Nginx on Mac 2 detects the connection failure on port 3001, automatically routes traffic to Backend B on port 3002 via `proxy_next_upstream`, and returns HTTP 200 with header `X-Backend: B`. No outage is visible to the client.
+- **Expected Outcome:** Nginx on Mac 2 detects the upstream connection failure on port 3001, automatically retries and fails over to Backend B via `proxy_next_upstream`, and returns HTTP 200 with `X-Backend: B`. The failover is transparent to the client.
 - **Reproduction Steps:**
   1. On **Mac 3**, terminate Backend A (`Ctrl+C` or `kill <PID_Backend_A>`).
-  2. Send requests to Mac 2 from the client:
+  2. Send consecutive requests through Mac 2 edge proxy:
      ```bash
-     curl -i http://app.team1.test:8080/
+     for i in 1 2 3 4; do
+         /usr/bin/curl -s -D - -o /dev/null https://app.$TEAM.test:8443/api/status | grep -iE 'HTTP|x-backend'
+     done
      ```
-  3. Verify response header `X-Backend: B` is returned consistently.
-- **Observed Result:** *(TODO: Record output during testing)*
+- **Observed Result (Evidence-Verified):**
+  - Prior to failure, responses alternated between `x-backend: A` and `x-backend: B`.
+  - After Backend A was stopped, all 4 test requests returned `HTTP/2 200` with header `x-backend: B`.
+  - Zero dropped connections or client-visible errors were encountered.
+  - **Evidence Artifact:** [f3-backend-stopped.png](../evidence/failures/f3-backend-stopped.png)
 
 ---
 
 ### F4: Both Backends Down (Upstream Pool Exhaustion on Mac 3)
-- **Scenario:** Both **Backend A** (`:3001`) and **Backend B** (`:3002`) are stopped on **Mac 3**.
-- **Expected Outcome:** Nginx on Mac 2 cannot establish an upstream connection to any service in the pool and returns `HTTP/1.1 502 Bad Gateway`.
+- **Scenario:** Both **Backend A** (`:3001`) and **Backend B** (`:3002`) processes are terminated on **Mac 3**.
+- **Expected Outcome:** Nginx on Mac 2 cannot establish an upstream connection to any server in the `team_backend` pool and returns `HTTP/2 502 Bad Gateway`.
 - **Reproduction Steps:**
   1. On **Mac 3**, stop both Backend A and Backend B processes.
   2. Send a request to Mac 2:
      ```bash
-     curl -i http://app.team1.test:8080/
+     /usr/bin/curl -si https://app.$TEAM.test:8443/api/status | head -1
      ```
-  3. Verify response is `502 Bad Gateway`.
-- **Observed Result:** *(TODO: Record output during testing)*
+- **Observed Result (Evidence-Verified):**
+  - Nginx returned: `HTTP/2 502`.
+  - Confirms standard RFC 7231 gateway behavior when all upstream pool members are unreachable.
+  - **Evidence Artifact:** [F4-both-backends-down.png](../evidence/failures/F4-both-backends-down.png)
 
 ---
 
 ### F5: Wrong Destination Port
-- **Scenario:** The client attempts to connect to an unopened port on Mac 2 (e.g., port 8081 or 9000).
-- **Expected Outcome:** The connection is rejected immediately with `Connection refused` (TCP RST packet received).
-- **Reproduction Command:**
+- **Scenario:** The client attempts to connect to an unopened port on Mac 2 (e.g., HTTPS on port 9443 instead of 8443).
+- **Expected Outcome:** Connection is rejected immediately with a TCP RST packet (`Connection refused`).
+- **Reproduction Commands:**
   ```bash
-  curl -i http://app.team1.test:8081/
+  /usr/bin/curl -sS https://app.$TEAM.test:9443/
+  nc -vz $MAC2_IP 8443
+  nc -vz $MAC2_IP 9443
   ```
-- **Observed Result:** *(TODO: Record output during testing)*
+- **Observed Result (Evidence-Verified):**
+  - Curl reported: `curl: (7) Failed to connect to app.team1.test port 9443 after 1086 ms: Couldn't connect to server`.
+  - Netcat to port 8443: `Connection to 10.7.19.92 port 8443 [tcp/pcsync-https] succeeded!`.
+  - Netcat to port 9443: `nc: connectx to 10.7.19.92 port 9443 (tcp) failed: Connection refused`.
+  - Demonstrates that requests to closed ports elicit immediate TCP RST rejection at the transport layer.
+  - **Evidence Artifact:** [F5-wrong-port.png](../evidence/failures/F5-wrong-port.png)
 
 ---
 
-## TODO: Future Implementation & Documentation
+## Evidence Summary
 
-- [ ] Execute each failure test case during live lab demo.
-- [ ] Save raw terminal session logs for F1 through F5 into `evidence/failures/`.
-- [ ] Capture Wireshark packet captures showing TCP RST for F5 and upstream connection errors for F4.
+All 5 failure modes (F1–F5) have been empirically executed, verified, and preserved in the repository under `evidence/failures/`:
+- `evidence/failures/F1-wrong-dns-server.png`
+- `evidence/failures/F2-wrong-dns.png`
+- `evidence/failures/f3-backend-stopped.png`
+- `evidence/failures/F4-both-backends-down.png`
+- `evidence/failures/F5-wrong-port.png`

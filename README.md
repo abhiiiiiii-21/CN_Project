@@ -101,7 +101,8 @@ CN_Project/
 │   │   └── team-https.conf.template    # Template for Mac 2 HTTPS TLS load balancer (port 8443)
 │   └── live/
 │       ├── dnsmasq.conf                # Active verified configuration for Mac 1
-│       └── team-https.conf             # Placeholder for active verified Mac 2 nginx TLS config
+│       ├── team-http.conf              # Active verified Mac 2 HTTP config (port 8080 redirect)
+│       └── team-https.conf             # Active verified Mac 2 HTTPS TLS load balancer config (port 8443)
 │
 ├── docs/                               # Detailed technical documentation
 │   ├── 01-architecture.md              # Complete topology & multi-tier request flow
@@ -127,16 +128,22 @@ CN_Project/
 │
 └── scripts/                            # Operational automation scripts
     ├── README.md                       # Automation scripts overview
-    ├── demo.sh                         # Automated verification & testing workflow
+    ├── demo.sh                         # Automated verification & testing workflow (read-only)
     ├── make-certs.sh                   # TLS Root CA and server certificate generation script
     └── render-configs.sh               # Environment-driven configuration renderer
 ```
 
-- **[backend/](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/backend)**: Contains [server.py](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/backend/server.py), the unified backend implementation capable of serving both Backend A (`:3001`) and Backend B (`:3002`) on Mac 3, with built-in `X-Backend` headers, ETag generation, 304 conditional handling, and non-cacheable status endpoints.
-- **[config/](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/config)**: Decoupled service configuration templates ([dnsmasq.conf.template](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/config/dnsmasq.conf.template), [nginx/](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/config/nginx)), environment variables template ([cn-team.env.example](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/config/cn-team.env.example)), and active live configurations in [config/live/](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/config/live).
-- **[docs/](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/docs)**: Comprehensive documentation files covering architecture, setup flow, DNS resolution, backend operation, load balancing, TLS/PKI, HTTP caching, packet capture, and failure demonstration scenarios.
-- **[evidence/](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/evidence)**: Structured directories reserved for raw terminal logs, Wireshark `.pcapng` packet captures, and screenshots produced during live lab testing.
-- **[scripts/](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/scripts)**: Helper scripts for certificate provisioning, configuration rendering, and demonstration flows.
+- **[backend/](backend/)**: Contains [server.py](backend/server.py), the unified backend implementation serving both Backend A (`:3001`) and Backend B (`:3002`) on Mac 3. Endpoints:
+  - `GET /`: Basic backend response (`X-Backend: A` or `B`)
+  - `GET /api/status`: Dynamic status (`Cache-Control: no-store`, `X-Backend: A` or `B`)
+  - `GET /api/info`: Cacheable response (`Cache-Control: public, max-age=60`, `ETag`, `304 Not Modified` on `If-None-Match`, `X-Backend: A` or `B`)
+- **[config/](config/)**: Decoupled service configuration templates ([dnsmasq.conf.template](config/dnsmasq.conf.template), [nginx/](config/nginx/)), environment variables template ([cn-team.env.example](config/cn-team.env.example)), and active live configurations in [config/live/](config/live/).
+- **[docs/](docs/)**: Comprehensive documentation files covering architecture, setup flow, DNS resolution, backend operation, load balancing, TLS/PKI, HTTP caching, packet capture, and failure demonstration scenarios.
+- **[evidence/](evidence/)**: Structured directories containing terminal logs, Wireshark `.pcapng` packet captures, and screenshots produced during live lab testing.
+- **[scripts/](scripts/)**: Operational scripts:
+  - `scripts/make-certs.sh`: Provisions the Team Root CA and server certificates with SANs (`app.$TEAM.test`, `api.$TEAM.test`) with overwrite protection.
+  - `scripts/render-configs.sh`: Injects environment variables from `~/cn-team.env` into configuration templates to produce active configs in `config/live/`.
+  - `scripts/demo.sh`: Comprehensive, read-only diagnostic and testing suite (`lan`, `dns`, `backends`, `lb`, `tls`, `http`, `cache`, `check`, `all`).
 
 ---
 
@@ -149,16 +156,18 @@ All machine IP addresses and network variables are decoupled from reusable confi
 | `TEAM` | Team namespace | `team1` |
 | `MAC1_IP` | Mac 1 IPv4 (Private DNS) | `10.7.21.145` |
 | `MAC2_IP` | Mac 2 IPv4 (Edge Nginx / LB) | `10.7.19.92` |
-| `MAC3_IP` | Mac 3 IPv4 (Dual Backends) | `10.7.29.148` |
+| `MAC3_IP` | Mac 3 IPv4 (Dual Backends + Wireshark) | `10.7.29.148` |
 | `COLLEGE_DNS` | Upstream DNS resolver | `8.8.8.8` |
 
-> **Architecture Note:** Both Backend A (`:3001`) and Backend B (`:3002`) run on Mac 3 (`MAC3_IP`).
+> **Architecture Note:** Both Backend A (`:3001`) and Backend B (`:3002`) run on Mac 3 (`MAC3_IP`). There is no Mac 4.
 
 ---
 
 ## Getting Started
 
-1. **Review Architecture:** Read [docs/01-architecture.md](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/docs/01-architecture.md) for full system topology.
-2. **Review Setup Sequence:** Read [docs/02-setup-flow.md](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/docs/02-setup-flow.md) for network connection guidelines and service startup order.
-3. **Configure Environment:** Copy [config/cn-team.env.example](file:///Users/abhishek/Documents/Coding/Assignments/CN_Project/config/cn-team.env.example) to `config/cn-team.env` and populate your LAN IP addresses.
-4. **Generate Configurations:** Run `./scripts/render-configs.sh` to produce deployable files in `config/live/`.
+1. **Review Architecture:** Read [docs/01-architecture.md](docs/01-architecture.md) for full system topology.
+2. **Review Setup Sequence:** Read [docs/02-setup-flow.md](docs/02-setup-flow.md) for network connection guidelines and service startup order.
+3. **Configure Environment:** Copy [config/cn-team.env.example](config/cn-team.env.example) to `~/cn-team.env` (or `config/cn-team.env`) and populate your LAN IP addresses.
+4. **Generate Certificates (on Mac 2):** Run `./scripts/make-certs.sh` to generate the Team Root CA and server certificates. Distribute `team-CA.pem` to client devices.
+5. **Generate Configurations:** Run `./scripts/render-configs.sh` to produce deployable files in `config/live/`.
+6. **Verify System Functionality:** Run `./scripts/demo.sh check` or `./scripts/demo.sh all` from any machine on the LAN to test end-to-end connectivity, DNS, TLS, load balancing, and HTTP caching.

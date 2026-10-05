@@ -110,9 +110,9 @@ The multi-tier architecture exercises all major layers of the TCP/IP stack:
 
 ---
 
-## TODO: Future Implementation & Documentation
+## Implementation & Testing Notes
 
-- [ ] Record final static/dynamic IP assignments for Mac 1, Mac 2, and Mac 3.
-- [ ] Document MTU settings and link speeds across the local Wi-Fi / switch subnet.
-- [ ] Add latency benchmarks between Mac 1, Mac 2, and Mac 3.
-- [ ] Verify complete packet flow with exported Wireshark session timestamps.
+- **Node Allocations & IP Assignments:** Verified across Mac 1 (`10.7.21.145`), Mac 2 (`10.7.19.92`), and Mac 3 (`10.7.29.148`).
+- **Packet Flow Verification:** Completed and stored in `evidence/G-packet-capture/phase1-full-flow-tls12.pcapng`.
+- **MTU & Link Speed Benchmarks:** *Not measured in Phase 1*.
+- **Inter-node Latency Benchmarks:** *Not measured in Phase 1*.

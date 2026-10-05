@@ -19,10 +19,12 @@ config/
 ├── cn-team.env.example       # Template environment variables for network setup
 ├── dnsmasq.conf.template     # dnsmasq configuration template for Mac 1
 ├── nginx/
-│   ├── team-http.conf.template   # nginx HTTP reverse proxy template (port 8080)
-│   └── team-https.conf.template  # nginx HTTPS TLS termination template (port 8443)
+│   ├── team-http.conf.template   # nginx HTTP port 8080 redirect template
+│   └── team-https.conf.template  # nginx HTTPS port 8443 TLS reverse proxy template
 └── live/
-    └── .gitkeep              # Directory reserved for active/tested runtime configs
+    ├── dnsmasq.conf          # Active verified dnsmasq configuration for Mac 1
+    ├── team-http.conf        # Active verified nginx HTTP 8080 redirect config
+    └── team-https.conf       # Active verified nginx HTTPS 8443 TLS config
 ```
 
 ---

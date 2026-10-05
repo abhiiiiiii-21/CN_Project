@@ -12,34 +12,35 @@ The load balancer upstream pool consists of the two backend instances on **Mac 3
 
 ```nginx
 upstream team_backend {
-    server MAC3_IP:3001;
-    server MAC3_IP:3002;
+    server 10.7.29.148:3001;
+    server 10.7.29.148:3002;
 }
 ```
 
-With current network parameters, `MAC3_IP` resolves to `10.7.29.148`. Both servers execute concurrently on Mac 3.
+Both backend instances run concurrently as isolated processes on Mac 3.
 
 ---
 
 ## Load Balancing & Reverse Proxy Mechanics
 
-### 1. Reverse Proxying
-Nginx acts as the single point of entry for the application domain names (`app.team1.test` and `api.team1.test`). Ingress traffic from clients is accepted on:
-- **Port 8080**: Standard HTTP plaintext communication.
-- **Port 8443**: Encrypted HTTPS communication terminated at Nginx.
+### 1. Reverse Proxying & Port Roles
+Nginx acts as the single point of ingress for the application domain names (`app.team1.test` and `api.team1.test`):
+- **Port 8080 (HTTP):** Standard HTTP plaintext listener that automatically redirects all incoming requests to HTTPS on port 8443 (`return 301 https://$host:8443$request_uri;`).
+- **Port 8443 (HTTPS):** Encrypted HTTPS listener that terminates TLS 1.2 / 1.3, negotiates HTTP/2 via ALPN, decrypts requests, and proxies them over HTTP/1.1 to Mac 3 backends.
 
-Nginx strips TLS overhead (on port 8443) and forwards plain HTTP requests internally to the upstream pool, injecting standard proxy headers:
+Nginx injects standard proxy headers into the upstream request:
 - `Host: $host`
 - `X-Real-IP: $remote_addr`
 - `X-Forwarded-For: $proxy_add_x_forwarded_for`
-- `X-Forwarded-Proto: $scheme`
+- `X-Forwarded-Proto https`
+- `add_header X-Upstream-Addr $upstream_addr always;` (returns the upstream IP:port in response headers)
 
-### 2. Round-Robin Scheduling
-By default, Nginx distributes incoming client requests across the upstream servers in sequential round-robin fashion:
-- Request 1 → `MAC3_IP:3001` (Backend A on Mac 3)
-- Request 2 → `MAC3_IP:3002` (Backend B on Mac 3)
-- Request 3 → `MAC3_IP:3001` (Backend A on Mac 3)
-- Request 4 → `MAC3_IP:3002` (Backend B on Mac 3)
+### 2. Round-Robin Distribution
+By default, Nginx distributes incoming client requests across the upstream servers in round-robin fashion:
+- Upstream target 1: `10.7.29.148:3001` (Backend A on Mac 3)
+- Upstream target 2: `10.7.29.148:3002` (Backend B on Mac 3)
+
+> **Note on Sequence:** While round-robin scheduling balances load evenly across backend workers, connection keep-alive, TCP session reuse, or HTTP/2 stream multiplexing from a single client can influence the observed distribution sequence. A strictly alternating sequence is not guaranteed under all connection patterns, but overall distribution balances across both backends.
 
 ### 3. High-Availability Failover
 Failover is controlled via Nginx upstream error handling directives:
@@ -53,42 +54,42 @@ If Backend A stops responding or encounters an error, Nginx transparently re-rou
 
 ## Ingress Ports and Protocols
 
-| Port | Protocol | Security | Upstream Target |
+| Port | Protocol | Security | Role / Upstream Target |
 |---|---|---|---|
-| **8080** | HTTP | Plaintext | `http://team_backend` (Mac 3:3001 / Mac 3:3002) |
-| **8443** | HTTPS | TLS 1.2 / 1.3 | `http://team_backend` (Mac 3:3001 / Mac 3:3002) |
+| **8080** | HTTP | Plaintext | HTTP Ingress -> 301 Redirect to `https://$host:8443$request_uri` |
+| **8443** | HTTPS | TLS 1.2 / 1.3 | TLS Termination -> `http://team_backend` (Mac 3:3001 / Mac 3:3002) |
 
 ---
 
 ## Verification Procedures
 
-### Sequential Load Balancing Check
+### Load Balancing Check
 ```bash
-for i in {1..4}; do
-    curl -sI http://app.team1.test:8080/ | grep -i "X-Backend:"
+for i in {1..6}; do
+    /usr/bin/curl -s https://app.team1.test:8443/api/status
+    echo
 done
 ```
-**Expected Output:**
+**Observed Output (from evidence):**
 ```text
-X-Backend: A
-X-Backend: B
-X-Backend: A
-X-Backend: B
+{"backend": "A", "status": "ok", "time": "2026-10-05T15:01:22.838067+00:00"}
+{"backend": "B", "status": "ok", "time": "2026-10-05T15:01:22.958487+00:00"}
+{"backend": "A", "status": "ok", "time": "2026-10-05T15:01:23.009835+00:00"}
+{"backend": "B", "status": "ok", "time": "2026-10-05T15:01:23.050413+00:00"}
+{"backend": "A", "status": "ok", "time": "2026-10-05T15:01:23.088991+00:00"}
+{"backend": "B", "status": "ok", "time": "2026-10-05T15:01:23.124942+00:00"}
 ```
-
-### Failover Check
-1. Stop Backend A on Mac 3 (`Ctrl+C` in Terminal 1).
-2. Execute requests against Mac 2:
-```bash
-curl -sI http://app.team1.test:8080/ | grep -i "X-Backend:"
-```
-**Expected Output:** All requests resolve to `X-Backend: B` with HTTP 200 status.
 
 ---
 
-## TODO: Future Implementation & Documentation
+## Evidence Artifacts
 
-- [ ] Tune upstream keepalive connections for HTTP/1.1 backend pooling.
-- [ ] Measure failover response latency under simulated backend crashes.
-- [ ] Document access log format capturing `$upstream_addr`, `$status`, and `$request_time`.
-- [ ] Store alternating curl traces in `evidence/D-load-balancing/`.
+- [lb-alternating.jpeg](../evidence/D-load-balancing/lb-alternating.jpeg): Terminal output capturing 6 consecutive requests through Mac 2 showing alternating backend responses (`"backend": "A"` and `"backend": "B"`).
+- [f3-backend-stopped.png](../evidence/failures/f3-backend-stopped.png): Demonstrates upstream failover to Backend B when Backend A is stopped.
+
+---
+
+## Implementation & Testing Notes
+
+- Upstream failover response latency under simulated crashes: *Not measured in Phase 1*.
+- Nginx access log formatting for `$upstream_addr` and `$request_time`: Handled via injected response header `X-Upstream-Addr: $upstream_addr`.

@@ -11,7 +11,7 @@ The platform uses **Mac 1** as a dedicated private Domain Name System (DNS) serv
 - **Host:** Mac 1
 - **Service:** `dnsmasq`
 - **Transport / Port:** UDP/TCP port 53
-- **Network Interface:** Bound to `127.0.0.1` and `MAC1_IP` (`10.7.21.145`)
+- **Network Interface:** Bound to loopback (`127.0.0.1`) and LAN interface `MAC1_IP` (`10.7.21.145`)
 
 ---
 
@@ -30,7 +30,7 @@ Both local domain names resolve directly to the **Mac 2 edge proxy**, which term
 
 ## dnsmasq Configuration on Mac 1
 
-The verified active configuration (`config/live/dnsmasq.conf`) deployed on Mac 1 is:
+The verified active configuration ([config/live/dnsmasq.conf](../config/live/dnsmasq.conf)) deployed on Mac 1 is:
 
 ```text
 listen-address=127.0.0.1,10.7.21.145
@@ -53,53 +53,59 @@ log-queries
 - `listen-address=127.0.0.1,10.7.21.145`: Restricts listener to loopback and LAN IP.
 - `bind-interfaces`: Binds specifically to the specified interfaces.
 - `no-resolv`: Ignores host `/etc/resolv.conf` to avoid recursive loops.
-- `server=8.8.8.8`: Primary upstream resolver for external domains.
-- `server=1.1.1.1`: Secondary fallback upstream resolver.
+- `server=8.8.8.8`: Primary upstream resolver (`COLLEGE_DNS`) for external domains.
+- `server=1.1.1.1`: Secondary fallback upstream resolver (Cloudflare DNS).
 - `local=/team1.test/`: Queries for `team1.test` are answered authoritatively from local records only and never forwarded.
 - `host-record`: Maps `app.team1.test` and `api.team1.test` directly to Mac 2 (`10.7.19.92`).
 - `domain-needed`: Blocks plain names without dots from being forwarded.
 - `bogus-priv`: Blocks reverse lookups for private IP ranges from being forwarded upstream.
-- `log-queries`: Emits query logs to stdout/stderr for demonstration and debugging.
+- `log-queries`: Emits query logs for demonstration and debugging.
 
 ---
 
-## DNS Verification Commands
+## DNS Verification Commands & Observed Results
 
 ### 1. Local Resolution from Mac 1 (`@127.0.0.1`)
-Verify internal domain resolution on the loopback interface:
 ```bash
-dig @127.0.0.1 app.team1.test +short
-# Expected output: 10.7.19.92
+dig @127.0.0.1 app.team1.test +noall +answer
+# Observed: app.team1.test. 0 IN A 10.7.19.92
+# Server:   127.0.0.1#53(127.0.0.1)
 
-dig @127.0.0.1 api.team1.test +short
-# Expected output: 10.7.19.92
+dig @127.0.0.1 api.team1.test +noall +answer
+# Observed: api.team1.test. 0 IN A 10.7.19.92
+# Server:   127.0.0.1#53(127.0.0.1)
 ```
 
 ### 2. External Upstream Forwarding Check
-Verify that non-local queries are forwarded to upstream resolvers:
 ```bash
-dig @127.0.0.1 google.com +short
-# Expected output: Public IP addresses for google.com
+dig @127.0.0.1 google.com +noall +answer
+# Observed: Resolved public IP addresses (e.g., 142.250.29.100) via upstream forwarding
 ```
 
 ### 3. Remote Resolution from Other Macs (`@10.7.21.145`)
 From Mac 2, Mac 3, or test client workstations:
 ```bash
 dig @10.7.21.145 app.team1.test +short
-# Expected output: 10.7.19.92
+# Observed: 10.7.19.92
 
 dig @10.7.21.145 api.team1.test +short
-# Expected output: 10.7.19.92
-
-dig @10.7.21.145 google.com +short
-# Expected output: Public IP addresses for google.com
+# Observed: 10.7.19.92
 ```
 
 ---
 
-## TODO: Future Implementation & Documentation
+## Evidence Artifacts
 
-- [ ] Capture query logs from `dnsmasq` under active load (`log-queries` output).
-- [ ] Document DNS caching and TTL behaviors observed during testing.
-- [ ] Measure DNS query latency vs direct IP connections.
-- [ ] Place terminal output captures in `evidence/B-dns/`.
+DNS verification traces are preserved in `evidence/B-dns/`:
+- [dnsmasq-live.png](../evidence/B-dns/dnsmasq-live.png): Live `dnsmasq` service startup and active configuration on Mac 1.
+- [dig-mac1.png](../evidence/B-dns/dig-mac1.png): Terminal capture of local resolution for `app.team1.test` and `api.team1.test`.
+- [dig-mac3.png](../evidence/B-dns/dig-mac3.png): Remote query execution from Mac 3 querying Mac 1 (`10.7.21.145:53`).
+- [internet-dns-forwarding.png](../evidence/B-dns/internet-dns-forwarding.png): Upstream forwarding verification resolving `google.com`.
+- [team-env-mac1.png](../evidence/B-dns/team-env-mac1.png): IP environment variable inspection on Mac 1.
+
+---
+
+## Implementation & Testing Notes
+
+- DNS caching and TTL behaviors under load: *Not measured in Phase 1*.
+- DNS query latency benchmarks vs direct IP: *Not measured in Phase 1*.

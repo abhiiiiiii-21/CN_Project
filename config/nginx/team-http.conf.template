@@ -1,28 +1,11 @@
 # ==============================================================================
-# Nginx HTTP Load Balancer Configuration Template (Mac 2)
+# Nginx HTTP Configuration Template (Mac 2)
 # ==============================================================================
-# Upstream backends located on Mac 3 (Ports 3001 and 3002)
-# NOTE: Both backends run as separate processes on Mac 3.
-
-upstream team_backend {
-    server MAC3_IP:3001;
-    server MAC3_IP:3002;
-}
+# Redirects plaintext HTTP traffic on port 8080 to HTTPS on port 8443.
 
 server {
     listen 8080;
     server_name app.TEAM.test api.TEAM.test;
 
-    location / {
-        proxy_pass http://team_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        # Timeouts and failover settings
-        proxy_connect_timeout 2s;
-        proxy_read_timeout 5s;
-        proxy_next_upstream error timeout http_502 http_503;
-    }
+    return 301 https://$host:8443$request_uri;
 }
