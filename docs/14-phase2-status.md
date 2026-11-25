@@ -1,6 +1,6 @@
 # Phase 2 Status Tracker
 
-Last updated: 25 November 2026, after the firewall copies from Mac 3 and Mac 4 were added. Requirements are the bullet points of section 7 of the course project guide.
+Last updated: 25 November 2026, after the Extension E timing capture. Requirements are the bullet points of section 7 of the course project guide.
 
 Legend: ✅ done with evidence · 🟡 partly shown · ⬜ not done
 
@@ -27,9 +27,9 @@ Legend: ✅ done with evidence · 🟡 partly shown · ⬜ not done
 | D | Name the single point of failure and the remedy | ✅ | `docs/01-architecture.md` |
 | E | Standby nginx on another Mac | ✅ | `E-cutover/mac1-standby-direct-test.txt` |
 | E | Point DNS at the standby | ✅ | `E-cutover/client-watch-cutover.txt` |
-| E | Cached client on the old edge while new lookups reach the standby | 🟡 | Cached client shown. A fresh lookup captured in the same window is still missing |
+| E | Cached client on the old edge while new lookups reach the standby | ✅ | `E-cutover/timing-old-and-new-edge.txt`. Same window shown for the lookup; the HTTP check on the fresh client was a follow-up |
 
-**Count: 19 of 20 done, 1 partly shown, 0 not started.** This counts requirements, not marks.
+**Count: 20 of 20 done, 0 partly shown, 0 not started.** This counts requirements, not marks.
 
 ## Extension F
 
@@ -41,7 +41,7 @@ The fault is injected by the faculty at the evaluation, so it cannot be finished
 |---|---|
 | Architecture document, updated for Phase 2 | ✅ Written |
 | Configuration bundle | ✅ In `config/` and `docs/` |
-| Evidence folder | 🟡 The partial item above (Extension E timing) |
+| Evidence folder | ✅ Every requirement above has evidence |
 | Final report | ✅ Written. Team review pending |
 | Final presentation and individual viva | ⬜ At the evaluation |
 
@@ -56,7 +56,7 @@ Also open: subnet mask, gateway and interface name for Mac 2, Mac 3 and Mac 4 (P
 | DNS control and demo scripts, DNS guide | ✅ |
 | Extension A | ✅ |
 | Extension B | ✅ |
-| Extension E, DNS change on the primary | ✅ Cutover and cut back. The shared timing item above is still 🟡 |
+| Extension E, DNS change on the primary | ✅ Cutover, cut back and timing capture |
 | Own report sections | ✅ |
 | Architecture document for four Macs, README | ✅ |
 | Mac 1 network details and DNS config used | ✅ `evidence/phase2/mac1/` |
@@ -64,4 +64,4 @@ Also open: subnet mask, gateway and interface name for Mac 2, Mac 3 and Mac 4 (P
 | Practice demonstration | ⬜ |
 | Viva preparation | ⬜ |
 
-All technical tasks assigned to Mac 1 are done. What is left for Mac 1 is practice, viva preparation, and helping with the shared Extension E timing capture.
+All technical tasks assigned to Mac 1 are done. What is left for Mac 1 is practice and viva preparation.
