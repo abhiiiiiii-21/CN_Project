@@ -132,4 +132,4 @@ Then on Mac 1:
 
 ## Local pre-check
 
-Before the lab, both configurations were run on Mac 1 alone, on test ports and with placeholder IPs: TTL 30, identical answers from both, record change, backup answering with the primary stopped, and NXDOMAIN for an unknown team name. Output: `evidence/phase2/B-ttl/mac1-local-precheck.txt`. It does not replace the 4-Mac demonstration: client caching and resolver failover are not tested yet.
+Before the lab, both configurations were run on Mac 1 alone, on test ports and with placeholder IPs: TTL 30, identical answers from both, record change, backup answering with the primary stopped, and NXDOMAIN for an unknown team name. Output: `evidence/phase2/B-ttl/mac1-local-precheck.txt`. It was only a pre-check. Client caching and resolver failover were tested afterwards on the four Macs; see `evidence/phase2/A-backup-dns/` and `evidence/phase2/B-ttl/`.

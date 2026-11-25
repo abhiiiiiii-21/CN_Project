@@ -16,6 +16,8 @@ A private multi-tier network service built on a local LAN with **four Macs**: pr
 | Topology, IP table, request flow by layer | [docs/01-architecture.md](docs/01-architecture.md) |
 | Phase 2 final report | [docs/12-phase2-report.md](docs/12-phase2-report.md) |
 | Phase 2 guides: DNS, edge, backend and firewall | [docs/10-phase2-dns.md](docs/10-phase2-dns.md), [docs/10-phase2-edge.md](docs/10-phase2-edge.md), [docs/11-phase2-backend.md](docs/11-phase2-backend.md) |
+| What is done and what remains | [docs/14-phase2-status.md](docs/14-phase2-status.md) |
+| Mac 1 work log | [docs/15-worklog-mac1.md](docs/15-worklog-mac1.md) |
 | Troubleshooting runbook | [docs/13-troubleshooting-runbook.md](docs/13-troubleshooting-runbook.md) |
 | Phase 2 evidence | [evidence/phase2/](evidence/phase2/) |
 | Phase 1 build documents (three-Mac layout) | `docs/02` to `docs/09` |

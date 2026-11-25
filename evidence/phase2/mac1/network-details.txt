@@ -1,0 +1,39 @@
+Mac 1 network details. Wed Nov 25 23:12:20 IST 2026
+
+$ route -n get default
+   route to: default
+destination: default
+       mask: default
+    gateway: 10.7.0.1
+  interface: en0
+      flags: <UP,GATEWAY,DONE,STATIC,PRCLONING,GLOBAL>
+ recvpipe  sendpipe  ssthresh  rtt,msec    rttvar  hopcount      mtu     expire
+       0         0         0         0         0         0      1500         0 
+
+$ ipconfig getifaddr en0
+10.7.30.25
+
+$ ipconfig getoption en0 subnet_mask
+255.255.224.0
+
+$ ifconfig en0 | grep -E "ether|inet "
+	ether e4:43:89:f1:51:ed
+	inet 10.7.30.25 netmask 0xffffe000 broadcast 10.7.31.255
+
+$ scutil --nwi
+Network information
+
+IPv4 network interface information
+     en0 : flags      : 0x5 (IPv4,DNS)
+           address    : 10.7.30.25
+           reach      : 0x00000002 (Reachable)
+
+   REACH : flags 0x00000002 (Reachable)
+
+IPv6 network interface information
+   No IPv6 states found
+
+
+   REACH : flags 0x00000000 (Not Reachable)
+
+Network interfaces: en0
