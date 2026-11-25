@@ -1,0 +1,26 @@
+Network details of all four Macs. Mac 2, 3 and 4: output of read-only commands copied from each Mac. Mac 1: see mac1/network-details.txt.
+Collected on 25 November 2026; added to the repo at 23:43.
+
+== Mac 2 (Modi)
+hostname: app
+interface: en0
+gateway: 10.7.0.1
+IP: 10.7.29.185
+subnet mask: 255.255.224.0
+MAC address: 06:1e:db:4d:fe:de
+
+== Mac 3 (Kapish)
+hostname: Kapishs-MacBook-Pro-2
+interface: en0
+gateway: 10.7.0.1
+IP: 10.7.1.253
+subnet mask: 255.255.224.0
+MAC address: aa:b6:b8:36:70:b0
+
+== Mac 4 (Vikash)
+hostname: Vikashs-MacBook-Pro
+interface: en0
+gateway: 10.7.0.1
+IP: 10.7.23.21
+subnet mask: 255.255.224.0
+MAC address: f6:d8:7f:02:21:a1
