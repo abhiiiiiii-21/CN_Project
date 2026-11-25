@@ -1,5 +1,7 @@
 # Configuration Management
 
+> **Phase 1 document.** It describes the earlier three-Mac layout. For the current four-Mac system see [the project README](../README.md).
+
 This directory contains configuration templates and environment specifications for the **Computer Networks Phase 1 — Private Network Service Platform**.
 
 The project operates across **exactly three Macs**:

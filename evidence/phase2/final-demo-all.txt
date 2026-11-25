@@ -1,0 +1,129 @@
+Full read-only verification, ./scripts/demo.sh all, run from Mac 1 on the 4-Mac setup. Wed Nov 25 22:25:43 IST 2026
+
+======================================================================
+TEST 1: LAN Reachability
+======================================================================
+Checking Mac 1 (DNS) (10.7.30.25)... [PASS] Mac 1 (DNS) (10.7.30.25) is reachable via ICMP ping.
+Checking Mac 2 (Nginx Edge / TLS) (10.7.29.185)... [PASS] Mac 2 (Nginx Edge / TLS) (10.7.29.185) is reachable via ICMP ping.
+Checking Mac 3 (Backend A) (10.7.1.253)... [PASS] Mac 3 (Backend A) (10.7.1.253) is reachable via ICMP ping.
+Checking Mac 4 (Backend B / backup DNS) (10.7.23.21)... [PASS] Mac 4 (Backend B / backup DNS) (10.7.23.21) is reachable via ICMP ping.
+[PASS] LAN connectivity check: PASS
+
+======================================================================
+TEST 2: DNS Resolution via Mac 1 (10.7.30.25:53)
+======================================================================
+Querying Mac 1 for app.team1.test...
+
+; <<>> DiG 9.10.6 <<>> @10.7.30.25 app.team1.test +noall +answer +comments
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 56918
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+app.team1.test.		30	IN	A	10.7.29.185
+[PASS] app.team1.test resolved to Mac 2 IP (10.7.29.185)
+
+Querying Mac 1 for api.team1.test...
+[PASS] api.team1.test resolved to Mac 2 IP (10.7.29.185)
+
+Querying Mac 1 for non-existent domain: nothere.team1.test...
+[PASS] nothere.team1.test returned status: NXDOMAIN as expected.
+[PASS] DNS resolution check: PASS
+
+======================================================================
+TEST 3: Direct Backend Services
+======================================================================
+1. Checking Backend A on http://10.7.1.253:3001/api/status...
+[PASS] Backend A responded with X-Backend: A
+
+2. Checking Backend B on http://10.7.23.21:3002/api/status...
+[PASS] Backend B responded with X-Backend: B
+
+3. Checking ETag consistency on /api/info across Backend A and Backend B...
+[INFO] Backend A /api/info ETag: "6402143662621d1b"
+[INFO] Backend B /api/info ETag: "6402143662621d1b"
+[PASS] ETag matches identically between Backend A and Backend B ("6402143662621d1b")
+[PASS] Backend services check: PASS
+
+======================================================================
+TEST 4: Load Balancing via https://app.team1.test:8443/api/status
+======================================================================
+Dispatching 6 consecutive requests through Mac 2 edge proxy...
+  Request 1 -> X-Backend: B | X-Upstream-Addr: 10.7.23.21:3002
+  Request 2 -> X-Backend: A | X-Upstream-Addr: 10.7.1.253:3001
+  Request 3 -> X-Backend: B | X-Upstream-Addr: 10.7.23.21:3002
+  Request 4 -> X-Backend: A | X-Upstream-Addr: 10.7.1.253:3001
+  Request 5 -> X-Backend: B | X-Upstream-Addr: 10.7.23.21:3002
+  Request 6 -> X-Backend: A | X-Upstream-Addr: 10.7.1.253:3001
+
+[INFO] Observed Request Distribution Sequence:
+    Req 1: Backend B (10.7.23.21:3002)
+    Req 2: Backend A (10.7.1.253:3001)
+    Req 3: Backend B (10.7.23.21:3002)
+    Req 4: Backend A (10.7.1.253:3001)
+    Req 5: Backend B (10.7.23.21:3002)
+    Req 6: Backend A (10.7.1.253:3001)
+[PASS] Load balancer processed all 6 requests successfully: PASS
+
+======================================================================
+TEST 5: TLS Verification (Strict PKI Validation without -k)
+======================================================================
+1. Checking TLS connection to https://app.team1.test:8443/api/status...
+[PASS] Certificate validation succeeded against trusted Root CA.
+[PASS] Subject Alternative Name (SAN) verified: *  subjectAltName: host "app.team1.test" matched cert's "app.team1.test"
+[PASS] Certificate Issuer verified: *  issuer: CN=team1 Local Root CA
+[PASS] Negotiated TLS Version: * SSL connection using TLSv1.3 / AEAD-AES256-GCM-SHA384 / [blank] / UNDEF
+
+2. Checking TLS connection to secondary SAN domain https://api.team1.test:8443/api/status...
+[PASS] Secondary SAN domain api.team1.test connected securely with HTTP 200.
+[PASS] TLS verification check: PASS
+
+======================================================================
+TEST 6: HTTP Protocol & Redirection (8080 -> 8443)
+======================================================================
+1. Checking HTTP/1.1 support...
+[PASS] HTTP/1.1 200 OK verified.
+
+2. Checking HTTP/2 support...
+[PASS] HTTP/2 200 OK verified.
+
+3. Checking plaintext redirect: http://app.team1.test:8080/ -> https://app.team1.test:8443/...
+  Status line:     HTTP/1.1 301 Moved Permanently
+  Location header: https://app.team1.test:8443/
+[PASS] Port 8080 successfully redirects to https://app.team1.test:8443/
+[PASS] HTTP protocol and redirection check: PASS
+
+======================================================================
+TEST 7: HTTP Caching & ETag Validation (/api/info & /api/status)
+======================================================================
+1. Initial fetch of cacheable resource: https://app.team1.test:8443/api/info...
+  Status:        HTTP/2 200 
+  Cache-Control: public, max-age=60
+  ETag:          "6402143662621d1b"
+[PASS] Initial request returned HTTP 200 OK.
+[PASS] Cache-Control header verified: public, max-age=60
+[PASS] Extracted ETag automatically: "6402143662621d1b"
+
+2. Sending conditional request with If-None-Match: "6402143662621d1b"...
+  Conditional Status: HTTP/2 304 
+[PASS] Conditional revalidation returned HTTP 304 Not Modified.
+
+3. Checking dynamic endpoint: https://app.team1.test:8443/api/status...
+  Status:        HTTP/2 200 
+  Cache-Control: no-store
+[PASS] /api/status correctly returns 200 with Cache-Control: no-store
+[PASS] HTTP caching check: PASS
+
+======================================================================
+TEST 8: Layered Diagnostic Pipeline (DNS -> TCP -> TLS -> HTTP)
+======================================================================
+Layer 1 [DNS]: Resolving app.team1.test via Mac 1 (10.7.30.25:53)... OK (app.team1.test -> 10.7.29.185)
+Layer 2 [TCP]: Connecting to Mac 2 at 10.7.29.185:8443... OK (Port 8443 open and accepting connections)
+Layer 3 [TLS]: Handshaking and validating certificate for app.team1.test... OK (Trusted CA + SAN validated)
+Layer 4 [HTTP]: Requesting application payload from /api/status... OK (HTTP 200 OK | Backend: A)
+
+[PASS] All layers (DNS -> TCP -> TLS -> HTTP) verified successfully: PASS

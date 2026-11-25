@@ -1,5 +1,7 @@
 # Environment Setup and Startup Flow
 
+> **Phase 1 document.** It describes the earlier three-Mac layout. For the current four-Mac system see [the architecture](01-architecture.md).
+
 ## Overview
 
 This document specifies the end-to-end setup and orchestrated initialization procedure for the three-Mac private network. Following this strict 8-step sequence ensures service dependencies are satisfied without race conditions or false connection errors.

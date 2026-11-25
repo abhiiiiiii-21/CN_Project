@@ -1,5 +1,7 @@
 # Operational Scripts
 
+> **Phase 1 document.** It describes the earlier three-Mac layout. For the current four-Mac system see [the project README](../README.md).
+
 This directory contains shell automation scripts for certificate provisioning, configuration rendering, and automated demonstration workflows across the 3-Mac architecture.
 
 ---

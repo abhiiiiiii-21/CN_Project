@@ -1,146 +1,107 @@
-# System Architecture Specification
+# System Architecture Specification (Phase 2)
 
 ## Overview
 
-The **Private Network Service Platform** is an isolated multi-tier network deployment designed to demonstrate core computer networking concepts: private DNS resolution, edge reverse proxying, Layer 7 load balancing, TLS termination, HTTP caching semantics, and deep packet inspection.
+A private network service platform on **four Macs** on one Wi-Fi LAN: private DNS with a backup resolver, an nginx edge that terminates TLS and load-balances, two backends on separate machines, backend isolation with `pf`, and a standby edge for DNS-based cutover.
 
-The entire topology is deployed across **exactly three physical Mac computers** communicating over a shared local area network (LAN).
+Phase 1 ran on three Macs, with both backends on Mac 3. That version of this document is in git history (commit `2faaaef`). Documents `02` to `09` describe the Phase 1 build.
 
-Both backend application services (Backend A and Backend B) run as separate concurrent processes on the same host (**Mac 3**).
+## Machine roles and services
 
----
+| Machine | Owner | Role | Software | Ports |
+|---|---|---|---|---|
+| Mac 1 | Abhishek | Primary DNS, test client | dnsmasq | 53 UDP/TCP |
+| Mac 2 | Modi | Edge: reverse proxy, load balancer, TLS termination | nginx | 8080 (redirect), 8443 (HTTPS) |
+| Mac 3 | Kapish | Backend A; standby edge (Ext E) | `backend/server.py`, nginx | 3001; 8443 and 8080 when standby |
+| Mac 4 | Vikash | Backend B; backup DNS; test client | `backend/server.py`, dnsmasq | 3002; 53 UDP/TCP |
 
-## Phase 2 Topology (planned)
+## IP inventory (Phase 2 lab session, 25 November 2026)
 
-The sections after this one record the Phase 1 deployment on three Macs. Phase 2 adds a fourth Mac:
+Addresses are not hard-coded in templates. They come from `~/cn-team.env`.
 
-| Machine | Owner | Role | Ports |
+| Machine | Variable | IPv4 | MAC address, as seen on the LAN |
 |---|---|---|---|
-| Mac 1 | Abhishek | Primary DNS, test client | 53 |
-| Mac 2 | Modi | nginx edge: TLS and load balancer | 8080, 8443 |
-| Mac 3 | Kapish | Backend A, standby edge | 3001, 8443 (standby) |
-| Mac 4 | Vikash | Backend B, backup DNS, test client | 3002, 53 |
+| Mac 1 | `MAC1_IP` | `10.7.30.25` | `e4:43:89:f1:51:ed` |
+| Mac 2 | `MAC2_IP` | `10.7.29.185` | `6:1e:db:4d:fe:de` |
+| Mac 3 | `MAC3_IP` | `10.7.1.253` | `aa:b6:b8:36:70:b0` |
+| Mac 4 | `MAC4_IP` | `10.7.23.21` | `f6:d8:7f:02:21:a1` |
 
-`MAC4_IP` is added to `~/cn-team.env`. DNS details: [10-phase2-dns.md](10-phase2-dns.md).
+Mac 1: interface `en0`, subnet mask `255.255.224.0` (/19), default gateway `10.7.0.1`. All four addresses are inside `10.7.0.0/19`. Mac 1's MAC address was read from `ifconfig`; the other three from the ARP table on Mac 1. Upstream DNS: `8.8.8.8`, then `1.1.1.1`.
+
+DNS records, both resolvers, TTL 30 s: `app.team1.test` and `api.team1.test` point to Mac 2.
+
+## Network topology
 
 ```mermaid
 flowchart LR
-    C["Client"] -->|"DNS query"| D1["Mac 1: primary DNS"]
-    C -.->|"if primary is down"| D2["Mac 4: backup DNS"]
-    C -->|"HTTPS 8443"| E["Mac 2: nginx edge"]
-    C -.->|"after DNS cutover"| S["Mac 3: standby edge"]
-    E --> A["Mac 3: Backend A :3001"]
-    E --> B["Mac 4: Backend B :3002"]
+    C["Client Mac"]
+    D1["Mac 1: primary DNS :53"]
+    D2["Mac 4: backup DNS :53"]
+    E["Mac 2: nginx edge :8443"]
+    S["Mac 3: standby edge :8443"]
+    A["Mac 3: Backend A :3001"]
+    B["Mac 4: Backend B :3002"]
+    C -->|"DNS query"| D1
+    C -.->|"if primary does not answer"| D2
+    C -->|"HTTPS"| E
+    C -.->|"after DNS cutover"| S
+    E -->|"HTTP"| A
+    E -->|"HTTP"| B
     S -.-> A
     S -.-> B
 ```
 
----
+All traffic crosses the same Wi-Fi network. With backend isolation on, ports 3001 and 3002 accept only Mac 2, Mac 3 (standby edge) and loopback.
 
-## Node Roles and Allocation
-
-| Machine | Role | Software / Service | Ports | Description |
-|---|---|---|---|---|
-| **Mac 1** | Private DNS Server & Test Client | `dnsmasq` | UDP 53 / TCP 53 | Resolves team local domain records (`app.team1.test`, `api.team1.test`) to Mac 2; forwards external queries to upstream resolvers. |
-| **Mac 2** | Edge Proxy, Load Balancer & TLS Termination | `nginx` | TCP 8080 (HTTP)<br/>TCP 8443 (HTTPS) | Acts as edge reverse proxy, terminates TLS connections, and load-balances traffic across Mac 3 backends. |
-| **Mac 3** | Dual Backend Services & Packet Capture | Python 3 (`server.py`), Wireshark | TCP 3001 (Backend A)<br/>TCP 3002 (Backend B) | Hosts Backend A and Backend B as independent Python HTTP processes; captures network traffic via Wireshark. |
-
----
-
-## IP Inventory (Placeholder & Current Mapping)
-
-Reusable templates decouple host addresses using environment variable placeholders:
-
-| Host Designation | Variable Placeholder | Role / Services | Tested Deployment IP (Environment-Specific) |
-|---|---|---|---|
-| Mac 1 | `MAC1_IP` | Private DNS Resolver (`dnsmasq` :53) & Client | `10.7.21.145` |
-| Mac 2 | `MAC2_IP` | Nginx Edge / Reverse Proxy / TLS Load Balancer (:8080, :8443) | `10.7.19.92` |
-| Mac 3 | `MAC3_IP` | Backend A (`:3001`), Standby nginx edge (`:8443` Ext E), pf firewall (Ext C) | `10.7.29.148` |
-| Mac 4 | `MAC4_IP` | Backend B (`:3002`), Backup DNS (`:53` Ext A), pf firewall (Ext C), test client | *(set at Day 1)* |
-| Upstream DNS | `COLLEGE_DNS` | Campus / Upstream Fallback DNS Resolver | `8.8.8.8` |
-
----
-
-## Network Topology
+## Request flow by protocol layer
 
 ```mermaid
-flowchart TD
-    Client["Client Workstation"]
-
-    subgraph Mac1["Mac 1 — Private DNS Infrastructure"]
-        DNS["dnsmasq (UDP/TCP :53)<br/>Listen: 127.0.0.1, MAC1_IP"]
-    end
-
-    subgraph Mac2["Mac 2 — Edge Proxy & Security Gateway"]
-        Nginx["nginx Reverse Proxy & Load Balancer<br/>HTTP :8080 | HTTPS :8443 (TLS Termination)"]
-    end
-
-    subgraph Mac3["Mac 3 — Application Services & Inspection"]
-        direction TB
-        BackendA["Backend A (TCP :3001)<br/>server.py A 3001"]
-        BackendB["Backend B (TCP :3002)<br/>server.py B 3002"]
-        Wireshark["Wireshark Packet Capture<br/>Interface: en0 (Ports 3001, 3002)"]
-    end
-
-    Client -->|"1. Query: app.team1.test"| DNS
-    DNS -->|"2. Return: MAC2_IP"| Client
-    Client -->|"3. Ingress: HTTP :8080 / HTTPS :8443"| Nginx
-    Nginx -->|"4a. Proxy Pass (Round-Robin)"| BackendA
-    Nginx -->|"4b. Proxy Pass (Round-Robin)"| BackendB
+sequenceDiagram
+    participant C as Client
+    participant D as DNS (Mac 1, backup Mac 4)
+    participant E as nginx edge (Mac 2)
+    participant B as Backend (Mac 3 or Mac 4)
+    C->>D: Application, DNS over UDP 53: A? app.team1.test
+    D-->>C: Mac 2 address, TTL 30
+    C->>E: Transport, TCP SYN to 8443
+    E-->>C: SYN-ACK
+    C->>E: ACK
+    C->>E: TLS ClientHello
+    E-->>C: ServerHello, Certificate, Finished
+    C->>E: TLS Finished
+    C->>E: Application, HTTP/2 request inside TLS
+    E->>B: new TCP connection, HTTP/1.x (not encrypted)
+    B-->>E: response with X-Backend
+    E-->>C: response inside TLS, adds X-Edge and X-Upstream-Addr
 ```
 
----
-
-## Multi-Tier Request Flow
-
-```text
-[ Client ]
-    │
-    │ 1. DNS Query: "app.team1.test"
-    ▼
-[ Mac 1: Private DNS (dnsmasq :53) ]
-    │
-    │ 2. Resolves "app.team1.test" -> Mac 2 IP ($MAC2_IP)
-    ▼
-[ Client ]
-    │
-    │ 3. HTTP (8080) / HTTPS (8443) Ingress Request
-    ▼
-[ Mac 2: Edge Reverse Proxy & Load Balancer (nginx) ]
-    │
-    ├───────────────────────────────┐
-    │ 4a. Forward to Backend A      │ 4b. Forward to Backend B
-    ▼                               ▼
-[ Mac 3: Backend A (:3001) ]   [ Mac 3: Backend B (:3002) ]
-                ▲
-                │ (All Mac 3 traffic monitored via Wireshark)
-```
-
-1. **DNS Lookup:** The client queries Mac 1 (`dnsmasq` listening on port 53) for `app.team1.test` or `api.team1.test`. Mac 1 returns the IPv4 address of Mac 2 (`MAC2_IP`).
-2. **Edge Ingress:** The client connects to Mac 2 on port 8080 (HTTP) or port 8443 (HTTPS with TLS termination).
-3. **Load Balancing:** Nginx on Mac 2 proxies the request to the upstream pool consisting of Mac 3 port 3001 (Backend A) and Mac 3 port 3002 (Backend B) in a round-robin schedule.
-4. **Backend Processing:** Mac 3 processes the request on the selected port and responds with an identifying header (`X-Backend: A` or `X-Backend: B`).
-5. **Packet Inspection:** Wireshark on Mac 3 captures ingress TCP connections, HTTP requests, responses, and local packet timing.
-
----
-
-## Protocol Layers Architecture
-
-The multi-tier architecture exercises all major layers of the TCP/IP stack:
-
-| Layer | Protocol / Technology | Function in System |
+| Layer (TCP/IP) | Protocol | Role here |
 |---|---|---|
-| **Application** | HTTP/1.1, DNS (RFC 1035) | Name resolution, client-to-proxy web traffic, reverse proxy upstream requests, caching semantics. |
-| **Security / Presentation** | TLS 1.2 / TLS 1.3 | Cryptographic channel encryption, PKI validation via private Root CA, SAN verification. |
-| **Transport** | TCP, UDP | Reliable byte-stream transport for HTTP/TLS (ports 8080, 8443, 3001, 3002); datagram transport for DNS queries (port 53). |
-| **Network (Internet)** | IPv4, ICMP | Host routing across the private subnet (`10.7.x.x`); connectivity checks via ICMP echo (`ping`). |
-| **Link / Physical** | 802.11 (Wi-Fi) / 802.3 (Ethernet) | Frame transmission across physical adapters (`en0`). |
+| Application | DNS | Finds the edge address |
+| Application | HTTP/2 to the edge, HTTP/1.x to backends | Requests, caching headers, load-balanced responses |
+| Between application and transport | TLS 1.2 / 1.3 | Encryption and server identity, ends at the edge |
+| Transport | UDP 53; TCP 8443, 8080, 3001, 3002 | DNS datagrams; reliable byte streams |
+| Internet | IPv4, ICMP | Addressing and reachability (`ping`) |
+| Link | Wi-Fi (802.11), interface `en0` | Frames on the LAN |
 
----
+DNS can also use TCP 53. The client opens one TCP connection to the edge, and the edge opens a separate one to a backend. The client does not need to know any backend address.
 
-## Implementation & Testing Notes
+## Resilience and remaining single points of failure
 
-- **Node Allocations & IP Assignments:** Decoupled via `MAC1_IP`, `MAC2_IP`, and `MAC3_IP`. Historical capture traces in `evidence/` reflect recorded addresses during lab runs.
-- **Packet Flow Verification:** Completed and stored in `evidence/G-packet-capture/phase1-full-flow-tls12.pcapng`.
-- **MTU & Link Speed Benchmarks:** *Not measured in Phase 1*.
-- **Inter-node Latency Benchmarks:** *Not measured in Phase 1*.
+| Failure | What covers it | Limit |
+|---|---|---|
+| Primary DNS down | Backup resolver on Mac 4 | Lookups wait about 2 s before trying the backup; records are not synchronised |
+| One backend down | nginx passive health check and retry on the other backend | Detected only when a real request fails |
+| Edge moved or taken out of service | Standby nginx on Mac 3 and a DNS record change | Manual; clients move as their cached answers expire |
+
+The **active edge is still a single point of failure**: if Mac 2 stops without warning, nothing changes the DNS record automatically. Removing it would need two live edges with automatic failover, for example a shared virtual IP (VRRP/keepalived on platforms that support it) or health-checked DNS records. Both backends and clients also depend on the same Wi-Fi network.
+
+## Cloud equivalents
+
+| Here | Cloud |
+|---|---|
+| dnsmasq, primary and backup | Managed DNS such as Route 53 |
+| nginx edge | Load balancer (AWS ALB, GCP Load Balancing) |
+| Backends | Application instances |
+| pf rules | Security groups |
+| DNS cutover to the standby edge | Blue/green traffic switch |
