@@ -3,9 +3,10 @@
 # render-configs.sh
 # ==============================================================================
 # Template rendering script using environment variables.
-# - Source variables from cn-team.env (TEAM, MAC1_IP, MAC2_IP, MAC3_IP, COLLEGE_DNS).
+# - Source variables from cn-team.env (TEAM, MAC1_IP..MAC4_IP, COLLEGE_DNS).
 # - Substitute placeholders in:
 #     - config/dnsmasq.conf.template -> config/live/dnsmasq.conf
+#     - config/phase2/dnsmasq-backup.conf.template -> config/live/dnsmasq-backup.conf
 #     - config/nginx/team-http.conf.template -> config/live/team-http.conf
 #     - config/nginx/team-https.conf.template -> config/live/team-https.conf
 # - Validate generated files for completeness.
@@ -36,8 +37,8 @@ echo "Sourcing environment variables from: $ENV_FILE"
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
-# Required variables check (Strictly 3 Macs)
-for var in TEAM MAC1_IP MAC2_IP MAC3_IP COLLEGE_DNS; do
+# Required variables check (4 Macs, Phase 2)
+for var in TEAM MAC1_IP MAC2_IP MAC3_IP MAC4_IP COLLEGE_DNS; do
     if [ -z "${!var:-}" ]; then
         echo "Error: Required variable '$var' is not set in $ENV_FILE"
         exit 1
@@ -56,6 +57,15 @@ sed \
     -e "s/COLLEGE_DNS/$COLLEGE_DNS/g" \
     "$PROJECT_ROOT/config/dnsmasq.conf.template" > "$PROJECT_ROOT/config/live/dnsmasq.conf"
 echo "  [OK] Rendered config/live/dnsmasq.conf"
+
+# 1b. Mac 4: dnsmasq-backup.conf (Phase 2 Ext A)
+sed \
+    -e "s/TEAM/$TEAM/g" \
+    -e "s/MAC2_IP/$MAC2_IP/g" \
+    -e "s/MAC4_IP/$MAC4_IP/g" \
+    -e "s/COLLEGE_DNS/$COLLEGE_DNS/g" \
+    "$PROJECT_ROOT/config/phase2/dnsmasq-backup.conf.template" > "$PROJECT_ROOT/config/live/dnsmasq-backup.conf"
+echo "  [OK] Rendered config/live/dnsmasq-backup.conf"
 
 # 2. Mac 2: team-http.conf (Port 8080 redirect to HTTPS 8443)
 sed \

@@ -1,0 +1,17 @@
+# Phase 2 Ext A: backup resolver on Mac 4. Records MUST match the primary on Mac 1.
+listen-address=127.0.0.1,MAC4_IP
+bind-interfaces
+
+no-resolv
+server=COLLEGE_DNS
+server=1.1.1.1
+
+local=/TEAM.test/
+host-record=app.TEAM.test,MAC2_IP
+host-record=api.TEAM.test,MAC2_IP
+
+local-ttl=30
+
+domain-needed
+bogus-priv
+log-queries
