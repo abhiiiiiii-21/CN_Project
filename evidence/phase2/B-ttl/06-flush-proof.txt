@@ -1,0 +1,17 @@
+Extension B: manual cache flush, immediate change. Output copied from the Mac 4 client.
+Client DNS: Mac 1 only, with phase2-demo.sh watch running before the change.
+On Mac 1, "point-app 10.7.1.253" restarted dnsmasq; the new process start time is 22:58:59.
+The command below was run on Mac 4 nine seconds later, well inside the 30 s TTL.
+
+$ date +%T; dscacheutil -q host -a name app.team1.test; ./scripts/phase2-demo.sh flush; date +%T; dscacheutil -q host -a name app.team1.test
+22:59:08
+name: app.team1.test
+ip_address: 10.7.29.185
+
+[OK] macOS DNS cache flushed
+22:59:08
+name: app.team1.test
+ip_address: 10.7.1.253
+
+Result: after the server had the new record, the client still returned the old cached address.
+Immediately after the flush, within the same second, it returned the new address.
