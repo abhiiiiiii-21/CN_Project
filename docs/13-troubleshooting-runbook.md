@@ -79,3 +79,4 @@ sed -i '' -e 's|ssl_certificate .*;|ssl_certificate /tmp/bad.crt;|' -e 's|ssl_ce
 
 | # | Fault ID | Diagnoser | Layer named | Correct | What gave it away | Fixed |
 |---|---|---|---|---|---|---|
+| 1 (guided: fault ID disclosed beforehand) | F5 | Abhishek | HTTP, edge to upstream | Yes | All 200 but only B; `x-upstream-addr` showed Mac 3 on 3005; 3001 accepted, 3005 refused; nginx `error.log` showed `Connection refused` | Yes, A and B both answer again |

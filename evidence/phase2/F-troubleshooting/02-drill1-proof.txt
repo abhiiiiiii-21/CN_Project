@@ -1,0 +1,10 @@
+Drill 1 isolation.
+
+== From Mac 1
+$ nc -vz -G 3 10.7.1.253 3001
+Connection to 10.7.1.253 port 3001 [tcp/redwood-broker] succeeded!
+$ nc -vz -G 3 10.7.1.253 3005
+nc: connectx to 10.7.1.253 port 3005 (tcp) failed: Connection refused
+
+== From Mac 2, copied: last lines of nginx error.log before the undo (one of five similar lines shown)
+2026/11/25 22:22:37 [error] 58038#0: *5535 kevent() reported that connect() failed (61: Connection refused) while connecting to upstream, client: 10.7.23.21, server: app.team1.test, request: "GET /api/status HTTP/2.0", upstream: "http://10.7.1.253:3005/api/status", host: "app.team1.test:8443"

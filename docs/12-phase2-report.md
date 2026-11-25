@@ -33,6 +33,8 @@ Faults found while setting up the 4-Mac network. These happened on their own; th
 | All HTTPS requests failed on Mac 4 | TLS | The name resolved and TCP connected; `curl -v` showed `unable to get local issuer certificate` | Mac 4 did not trust the team root CA. Fixed by installing the CA that signed the edge certificate, after checking its fingerprint |
 | Mac 3 env file had an old address | Configuration | `MAC3_IP` differed from the address on `en0` | The file was from an earlier session. Replaced with the current four addresses before enabling the firewall |
 
+**Practice drill 1 (guided; the fault had been disclosed beforehand).** The upstream port for Backend A on Mac 2 was changed from 3001 to 3005. Client settings, both resolvers, TCP to the edge and TLS were healthy. All requests returned 200 but only Backend B answered. `x-upstream-addr` showed nginx trying Mac 3 on 3005; from Mac 1, port 3001 accepted connections and 3005 was refused; the nginx error log showed `Connection refused` for 3005. After re-rendering the config and reloading nginx, both backends answered again. Lesson: a 200 response does not show that both backends are healthy. Evidence: `evidence/phase2/F-troubleshooting/`.
+
 ## Learning summary
 
 ### Extension A — Backup DNS resolver (Abhishek)

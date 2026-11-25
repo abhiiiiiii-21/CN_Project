@@ -1,0 +1,11 @@
+Drill 1 (guided: the fault ID had been disclosed to the diagnoser before the checks). Output from Mac 1.
+Checks 1-4 (client DNS settings, both resolvers, TCP 8443, TLS verification) were healthy.
+
+$ ./scripts/phase2-demo.sh lb 6
+   1  HTTP 200  X-Backend: B  X-Edge: mac2-primary  upstream: 10.7.1.253:3005, 10.7.23.21:3002
+   2  HTTP 200  X-Backend: B  X-Edge: mac2-primary  upstream: 10.7.23.21:3002
+   3  HTTP 200  X-Backend: B  X-Edge: mac2-primary  upstream: 10.7.23.21:3002
+   4  HTTP 200  X-Backend: B  X-Edge: mac2-primary  upstream: 10.7.23.21:3002
+   5  HTTP 200  X-Backend: B  X-Edge: mac2-primary  upstream: 10.7.23.21:3002
+   6  HTTP 200  X-Backend: B  X-Edge: mac2-primary  upstream: 10.7.23.21:3002
+Summary: 6/6 HTTP 200, Backend A: 0, Backend B: 6
