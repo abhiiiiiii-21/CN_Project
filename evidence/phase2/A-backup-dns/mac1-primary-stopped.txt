@@ -1,0 +1,15 @@
+Primary DNS (Mac 1) stopped; queries run from Mac 1. This does not show client resolver failover; see the client Mac evidence for that.
+Date: Wed Nov 25 19:43:05 IST 2026
+
+dnsmasq process on Mac 1: not running
+
+$ dig app.team1.test @10.7.30.25 +noall +answer
+NO ANSWER
+
+$ dig app.team1.test @10.7.23.21 +noall +answer
+app.team1.test.		30	IN	A	10.7.29.185
+
+HTTPS through the edge, using the address returned by the backup:
+HTTP/2 200 
+x-backend: B
+x-edge: mac2-primary
