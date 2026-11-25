@@ -19,13 +19,19 @@ Status: draft. Results are filled in only after the matching 4-Mac test has been
 |---|---|---|
 | A — Backup DNS | Stop the primary; clients still resolve | Passed on the Mac 2 client: with the primary stopped, the system resolver returned the Mac 2 address and HTTPS returned 200 |
 | B — TTL | Change a record; old answer until TTL expiry; flush | Passed: after the change the Mac 4 client kept the old address for about 12 s, then switched. After the restore with a flush it switched back within about 4 s (`evidence/phase2/B-ttl/`) |
-| C — Isolation | Client blocked from 3001/3002; edge allowed | Passed from the Mac 1 client: both ports timed out; 8/8 requests through the edge returned 200, alternating A and B (`evidence/phase2/C-isolation/mac1-client-blocked.txt`). Mac 2 can still connect to both (`02-edge-allowed.png`). Rollback not yet shown |
+| C — Isolation | Client blocked from 3001/3002; edge allowed | Passed from the Mac 1 client: both ports timed out; 8/8 requests through the edge returned 200, alternating A and B (`evidence/phase2/C-isolation/mac1-client-blocked.txt`). Mac 2 can still connect to both (`02-edge-allowed.png`). Rollback shown: after `disable` on both Macs, both ports were open again and 6/6 requests returned 200 |
 | D — HA failover | Stop Backend A; requests still succeed | Passed (Mac 2 evidence): 10/10 returned 200 from Backend B with A stopped; 6/6 split 3/3 after restart (`evidence/phase2/D-ha/`) |
 | E — Edge migration | Point DNS at the standby edge | Passed: after the cutover the Mac 4 client stayed on `mac2-primary` until 21:03:17 and used `mac3-standby` from 21:03:20; after the cut back it returned at 21:05:57. HTTP 200 on every watch line shown (`evidence/phase2/E-cutover/`) |
 
 ## Troubleshooting findings
 
-Pending (Extension F).
+Faults found while setting up the 4-Mac network. These happened on their own; the faculty-injected challenge (Extension F) is still pending.
+
+| Symptom | Layer | How it was isolated | Cause and fix |
+|---|---|---|---|
+| Backup DNS gave no answer | DNS | Ping and port 3002 worked; TCP 53 was refused and the UDP query timed out | Nothing was reachable on port 53 at Mac 4's address. It answered after Mac 4 updated its address and restarted the backup resolver |
+| All HTTPS requests failed on Mac 4 | TLS | The name resolved and TCP connected; `curl -v` showed `unable to get local issuer certificate` | Mac 4 did not trust the team root CA. Fixed by installing the CA that signed the edge certificate, after checking its fingerprint |
+| Mac 3 env file had an old address | Configuration | `MAC3_IP` differed from the address on `en0` | The file was from an earlier session. Replaced with the current four addresses before enabling the firewall |
 
 ## Learning summary
 
@@ -39,6 +45,8 @@ Evidence: `evidence/phase2/A-backup-dns/`. `mac1-both-resolvers.txt` and `mac1-p
 
 ### Extension C — Service isolation (Kapish)
 Service isolation restricts access to backend application ports (3001 and 3002) using macOS `pf` (packet filter) anchor rules (`com.apple/cn-isolate`). The rules allow incoming TCP traffic strictly from local loopback (`lo0`), Mac 2 primary edge proxy (`$MAC2_IP`), and Mac 3 standby edge proxy (`{ $MAC3_IP }`), while dropping all other incoming packets without reply (`block drop in quick`). This guarantees that external clients cannot bypass the edge security layer or access backends directly. The configuration was verified using `./scripts/pf-isolate.sh check` and rule syntax parsing.
+
+**Measured results.** With the rules enabled on Mac 3 and Mac 4, both backend ports timed out from Mac 1, Mac 2 could connect to both, and 8/8 requests through the edge returned 200, alternating A and B. The block rule counted 4 packets on Mac 4 and 2 on Mac 3. After `pf-isolate.sh disable` on both, both ports were open from Mac 1 again.
 
 ### Extension D — High-Availability Failover (Modi & Kapish)
 Demonstrates active fault tolerance using Nginx passive health checks. When Backend A on Mac 3 is stopped (`kill` or `Ctrl-C`), Nginx detects the connection failure (`Connection refused`), immediately triggers `proxy_next_upstream`, and routes pending client requests seamlessly to Backend B on Mac 4 with zero downtime (`HTTP 200`, `X-Backend: B`). When Backend A is restarted on Mac 3, Nginx automatically resumes round-robin distribution after its health check window expires.

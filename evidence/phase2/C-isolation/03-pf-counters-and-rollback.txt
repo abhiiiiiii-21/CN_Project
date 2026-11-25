@@ -1,0 +1,21 @@
+Output of ./scripts/pf-isolate.sh status and disable, copied from Mac 4 and Mac 3 (trimmed to rules and packet counters).
+
+== Mac 4: status (enabled for 00:35:46)
+pass from 10.7.29.185 (Mac 2)    Packets: 1615
+pass from 10.7.1.253  (Mac 3)    Packets: 906
+pass on lo0                      Packets: 0
+block drop, all others           Packets: 4
+== Mac 4: disable
+Rolled back (anchor com.apple/cn-isolate flushed)
+(no rules in anchor com.apple/cn-isolate)
+
+== Mac 3: status (enabled for 00:32:05)
+pass from 10.7.29.185 (Mac 2)    Packets: 1763
+pass from 10.7.1.253  (Mac 3)    Packets: 930
+pass on lo0                      Packets: 0
+block drop, all others           Packets: 2
+== Mac 3: disable
+Rolled back (anchor com.apple/cn-isolate flushed)
+(no rules in anchor com.apple/cn-isolate)
+== Mac 3: ./scripts/edge-apply.sh stop
+nginx stopped
