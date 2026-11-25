@@ -25,3 +25,4 @@ One entry for each piece of work, newest at the bottom. Times are IST. Where a t
 | 23:12 | Added status tracker and this work log; saved Mac 1 network details and the DNS config in use; corrected an outdated line in the DNS guide | Tracker: 18 of 20 requirements done, 2 partly shown | this commit |
 | 23:18 | Added the firewall copies sent from Mac 3 and Mac 4; updated tracker and report | Extension C requirements complete; tracker 19 of 20 | this commit |
 | 23:31 | Extension E timing: changed the primary record at 23:25:12 with Mac 2 and Mac 4 as clients; diagnosed a connection failure on Mac 2 | Fresh lookup got the standby while the cached client stayed on the old edge; tracker 20 of 20 | this commit |
+| 23:34 | Checked the restore from Mac 1 after the Extension E timing test | Both resolvers answer Mac 2 with TTL 30 and the standby is stopped; HTTPS fails because Mac 2 refuses connections on 8443 and 8080 | this commit |
