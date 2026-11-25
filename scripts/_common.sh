@@ -15,6 +15,9 @@ warn() { echo "[WARN] $*" >&2; }
 
 load_env() {
     local f="${CN_ENV:-$HOME/cn-team.env}"
+    if [ -z "${CN_ENV:-}" ] && [ ! -f "$f" ]; then
+        f="$PROJECT_ROOT/config/cn-team.env"
+    fi
     [ -f "$f" ] || die "$f not found. Do steps 2-3 of the command sheet first."
     # shellcheck disable=SC1090
     source "$f"

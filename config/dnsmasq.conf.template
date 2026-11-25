@@ -1,8 +1,7 @@
 # dnsmasq for the team zone
-# Rendered twice by render-configs.sh:
-#   config/live/dnsmasq.conf         -> Mac 1 (primary DNS), listens on Mac 1's IP
-#   config/live/dnsmasq-backup.conf  -> Mac 4 (backup DNS),  listens on Mac 4's IP
-# Both files must carry identical host-record lines (checked in step 39).
+# Rendered by render-configs.sh for Mac 1 (primary DNS).
+# The backup resolver uses config/phase2/dnsmasq-backup.conf.template.
+# Both files must carry identical host-record lines.
 
 listen-address=127.0.0.1,LISTEN_IP
 bind-interfaces
