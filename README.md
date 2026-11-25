@@ -18,6 +18,7 @@ A private multi-tier network service built on a local LAN with **four Macs**: pr
 | Phase 2 guides: DNS, edge, backend and firewall | [docs/10-phase2-dns.md](docs/10-phase2-dns.md), [docs/10-phase2-edge.md](docs/10-phase2-edge.md), [docs/11-phase2-backend.md](docs/11-phase2-backend.md) |
 | What is done and what remains | [docs/14-phase2-status.md](docs/14-phase2-status.md) |
 | Mac 1 DNS commands and one-key control panel | [docs/16-mac1-commands.md](docs/16-mac1-commands.md) |
+| Mac 1 viva guide | [docs/17-mac1-viva-guide.md](docs/17-mac1-viva-guide.md) |
 | Mac 1 work log | [docs/15-worklog-mac1.md](docs/15-worklog-mac1.md) |
 | Troubleshooting runbook | [docs/13-troubleshooting-runbook.md](docs/13-troubleshooting-runbook.md) |
 | Phase 2 evidence | [evidence/phase2/](evidence/phase2/) |

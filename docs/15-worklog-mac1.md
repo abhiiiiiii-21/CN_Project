@@ -29,3 +29,9 @@ One entry for each piece of work, newest at the bottom. Times are IST. Where a t
 | 23:37 | Mac 2 nginx started again; retested from Mac 1 | 8 of 8 requests returned 200, 4 from each backend; all 8 checks in `demo.sh all` passed | this commit |
 | 23:43 | Added network details sent from Mac 2, 3 and 4 to the architecture document and evidence | All four Macs on `10.7.0.0/19`, gateway `10.7.0.1`, interface `en0` | this commit |
 | 23:48 | Added a one-key control panel for Mac 1 (`scripts/mac1.sh`, `Mac1.command`) and a command guide | Tested with `sudo` simulated: command order correct, wrong-IP check works, status read live. Not yet run with real `sudo` | this commit |
+
+## 26 November 2026
+
+| Time | Work | Result | Commit or evidence |
+|---|---|---|---|
+| 02:38 | Wrote the Mac 1 viva guide: introduction, config, demonstrations, questions and answers | Added `docs/17-mac1-viva-guide.md` | this commit |
