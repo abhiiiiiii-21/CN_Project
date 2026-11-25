@@ -1,0 +1,15 @@
+Mac 4 client output of ./scripts/phase2-demo.sh watch, copied from that Mac. Excerpt around the cut back to the primary edge.
+Both records were changed back to 10.7.29.185 (Mac 2). On Mac 1 the restarted dnsmasq has process start time 21:05:42.
+At 21:06:03 both resolvers returned 10.7.29.185. The restart time on Mac 4 was not captured.
+
+21:05:42  system-resolver: 10.7.1.253       HTTP 200  X-Edge: mac3-standby  X-Backend: B
+21:05:44  system-resolver: 10.7.1.253       HTTP 200  X-Edge: mac3-standby  X-Backend: A
+21:05:46  system-resolver: 10.7.1.253       HTTP 200  X-Edge: mac3-standby  X-Backend: B
+21:05:48  system-resolver: 10.7.1.253       HTTP 200  X-Edge: mac3-standby  X-Backend: A
+21:05:51  system-resolver: 10.7.1.253       HTTP 200  X-Edge: mac3-standby  X-Backend: B
+21:05:53  system-resolver: 10.7.1.253       HTTP 200  X-Edge: mac3-standby  X-Backend: A
+21:05:55  system-resolver: 10.7.1.253       HTTP 200  X-Edge: mac3-standby  X-Backend: B
+21:05:57  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: B
+21:05:59  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: A
+21:06:01  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: B
+21:06:04  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: A
