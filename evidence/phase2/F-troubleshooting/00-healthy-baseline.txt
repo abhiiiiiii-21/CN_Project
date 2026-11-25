@@ -1,0 +1,38 @@
+Healthy baseline from Mac 1. Wed Nov 25 21:58:50 IST 2026
+
+$ scutil --dns | grep nameserver | head -2
+  nameserver[0] : 10.7.30.25
+  nameserver[1] : 10.7.23.21
+
+$ dig app.team1.test @10.7.30.25 +noall +answer | grep -v '^;'
+
+app.team1.test.		30	IN	A	10.7.29.185
+
+$ dig app.team1.test @10.7.23.21 +noall +answer | grep -v '^;'
+
+app.team1.test.		30	IN	A	10.7.29.185
+
+$ dig +short app.team1.test
+10.7.29.185
+
+$ dscacheutil -q host -a name app.team1.test
+name: app.team1.test
+ip_address: 10.7.29.185
+
+
+$ nc -vz -G 3 10.7.29.185 8443
+Connection to 10.7.29.185 port 8443 [tcp/pcsync-https] succeeded!
+
+$ curl -sv -m 8 -o /dev/null https://app.team1.test:8443/ 2>&1 | grep -E 'Connected to|SSL connection|subject:|issuer:|verify'
+* Connected to app.team1.test (10.7.29.185) port 8443
+* (304) (IN), TLS handshake, CERT verify (15):
+* SSL connection using TLSv1.3 / AEAD-AES256-GCM-SHA384 / [blank] / UNDEF
+*  subject: CN=app.team1.test
+*  issuer: CN=team1 Local Root CA
+*  SSL certificate verify ok.
+
+$ curl -sI -m 8 https://app.team1.test:8443/api/status | grep -iE '^HTTP|x-backend|x-edge|x-upstream'
+HTTP/2 200 
+x-backend: B
+x-edge: mac2-primary
+x-upstream-addr: 10.7.23.21:3002
