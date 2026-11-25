@@ -1,0 +1,30 @@
+STANDBY EDGE VERIFICATION ON MAC 3 (Kapish) — Extension E
+Date: Wed Nov 25 18:57:00 IST 2026
+Node: Mac 3 (Kapish)
+Role: Standby Nginx Edge Proxy (port 8443)
+
+== 1. Standby Edge Architecture & Role ==
+In Extension E, if Mac 2 edge proxy fails or undergoes planned maintenance:
+1. DNS records on primary (Mac 1) and backup (Mac 4) are pointed to Mac 3:
+   ./scripts/dns-ctl.sh primary point-app "$MAC3_IP"
+   ./scripts/dns-ctl.sh backup point-app "$MAC3_IP"
+2. Standby Nginx on Mac 3 takes over traffic on port 8443.
+3. Upstream pool on Mac 3 remains identical:
+   upstream team_backend {
+       server 10.7.29.148:3001;  # Backend A (local)
+       server 10.7.0.100:3002;   # Backend B (Mac 4)
+   }
+4. Distinguishing header:
+   X-Edge: mac3-standby
+
+== 2. Configuration & Certificate Verification ==
+Template: config/nginx/team-https.conf.template -> Rendered: config/live/team-https-standby.conf
+Certificate location: /opt/homebrew/etc/nginx/certs/app.crt
+Private key location: /opt/homebrew/etc/nginx/certs/app.key (permissions 600)
+Edge apply script: ./scripts/edge-apply.sh standby
+
+== 3. Zero-Downtime Migration Semantics ==
+- TTL on DNS records is 30 seconds (Extension B).
+- Existing clients with cached DNS continue to route to Mac 2 (mac2-primary) for up to 30s.
+- Newly resolved clients and clients flushing cache (./scripts/phase2-demo.sh flush) immediately hit Mac 3 (mac3-standby).
+- Backend pf firewall allows both Mac 2 and Mac 3, ensuring zero request failures during migration.

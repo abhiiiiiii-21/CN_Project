@@ -1,0 +1,67 @@
+MAC 3 (Kapish) Phase 2 Pre-Check
+Date: Wed Nov 25 18:30:03 IST 2026
+Mac IP (current): 10.7.1.253
+Git HEAD: 5abb871 Merge pull request #1 from abhiiiiiii-21/phase2/mac1-dns
+Python: Python 3.9.6
+nginx: nginx version: nginx/1.31.10
+
+== Step 0.3: nginx installed ==
+nginx version: nginx/1.31.10
+
+== Script syntax (bash -n) ==
+  ok  scripts/_common.sh
+  ok  scripts/demo.sh
+  ok  scripts/dns-ctl.sh
+  ok  scripts/dns-demo.sh
+  ok  scripts/edge-apply.sh
+  ok  scripts/lib-env.sh
+  ok  scripts/make-certs.sh
+  ok  scripts/pf-isolate.sh
+  ok  scripts/phase2-demo.sh
+  ok  scripts/render-configs.sh
+
+== Render configs (6 x [OK] Rendered) ==
+Sourcing environment variables from: /tmp/cn-team-test.env
+Rendering configuration templates for team 'team1'...
+  [OK] Rendered config/live/dnsmasq.conf
+  [OK] Rendered config/live/dnsmasq-backup.conf
+  [OK] Rendered config/live/team-http.conf
+  [OK] Rendered config/live/team-https.conf
+  [OK] Rendered config/live/team-https-standby.conf
+  [OK] Rendered config/live/pf-backends.conf
+Configuration rendering complete.
+
+== pf rules parsed (Ext C): 4 rules expected ==
+pass in quick on lo0 proto tcp from any to any port 3001:3002
+pass in quick proto tcp from 10.7.19.92 to any port 3001:3002
+pass in quick proto tcp from { 10.7.29.148 } to any port 3001:3002
+block drop in quick proto tcp from any to any port 3001:3002
+
+== Standby nginx config diff (mac2-primary vs mac3-standby) ==
+3c3
+<         add_header X-Edge mac2-primary always;
+---
+>         add_header X-Edge mac3-standby always;
+
+== Backend A: curl /api/status ==
+  Startup log: Backend A listening on 0.0.0.0:3001
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.6 Python/3.9.6
+Date: Wed, 25 Nov 2026 13:00:03 GMT
+X-Backend: A
+Content-Type: application/json
+Content-Length: 76
+Cache-Control: no-store
+
+{"backend": "A", "status": "ok", "time": "2026-11-25T13:00:03.615066+00:00"}
+== Backend A: curl /api/info (ETag) ==
+HTTP/1.0 200 OK
+X-Backend: A
+Cache-Control: public, max-age=60
+ETag: "6402143662621d1b"
+
+== nginx -t (standby config) ==
+  team-https-standby.conf rendered with X-Edge: mac3-standby
+#   config/live/team-https.conf          -> Mac 2 primary edge  (X-Edge: mac2-primary)
+#   config/live/team-https-standby.conf  -> Mac 3 standby edge  (X-Edge: mac3-standby)
+        add_header X-Edge mac3-standby always;

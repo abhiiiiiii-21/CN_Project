@@ -55,7 +55,8 @@ Reusable templates decouple host addresses using environment variable placeholde
 |---|---|---|---|
 | Mac 1 | `MAC1_IP` | Private DNS Resolver (`dnsmasq` :53) & Client | `10.7.21.145` |
 | Mac 2 | `MAC2_IP` | Nginx Edge / Reverse Proxy / TLS Load Balancer (:8080, :8443) | `10.7.19.92` |
-| Mac 3 | `MAC3_IP` | Dual Application Backends (`:3001`, `:3002`) & Wireshark Capture | `10.7.29.148` |
+| Mac 3 | `MAC3_IP` | Backend A (`:3001`), Standby nginx edge (`:8443` Ext E), pf firewall (Ext C) | `10.7.29.148` |
+| Mac 4 | `MAC4_IP` | Backend B (`:3002`), Backup DNS (`:53` Ext A), pf firewall (Ext C), test client | *(set at Day 1)* |
 | Upstream DNS | `COLLEGE_DNS` | Campus / Upstream Fallback DNS Resolver | `8.8.8.8` |
 
 ---

@@ -2,9 +2,11 @@
 
 ## Overview
 
-The application backend layer is hosted entirely on **Mac 3**. To validate multi-instance load balancing, failover, and session independence without requiring additional physical hardware, Mac 3 runs two distinct backend instances as isolated concurrent processes.
+The application backend layer is hosted across **Mac 3** and **Mac 4** in Phase 2. To validate multi-instance load balancing, failover, and session independence:
+- **Backend A** runs on **Mac 3** (`$MAC3_IP:3001`).
+- **Backend B** runs on **Mac 4** (`$MAC4_IP:3002`).
 
-Both Backend A and Backend B execute on **Mac 3**.
+> **Phase 2 Architecture Note:** Backend B was moved from Mac 3 to Mac 4 to distribute workloads across physical machines. Additionally, both backend Macs enforce service isolation via `pf` packet filtering (Extension C), restricting direct ingress access so that only Edge proxies (Mac 2 primary edge, Mac 3 standby edge) can communicate on ports 3001 and 3002. Detailed Mac 3 operations are documented in [docs/11-phase2-backend.md](11-phase2-backend.md).
 
 ---
 
@@ -13,7 +15,7 @@ Both Backend A and Backend B execute on **Mac 3**.
 | Instance | Host | Port | Launch Command | Identifying Header |
 |---|---|---|---|---|
 | **Backend A** | Mac 3 (`$MAC3_IP`) | TCP 3001 | `python3 backend/server.py A 3001` | `X-Backend: A` |
-| **Backend B** | Mac 3 (`$MAC3_IP`) | TCP 3002 | `python3 backend/server.py B 3002` | `X-Backend: B` |
+| **Backend B** | Mac 4 (`$MAC4_IP`) | TCP 3002 | `python3 backend/server.py B 3002` | `X-Backend: B` |
 
 Both instances share a single implementation file ([backend/server.py](../backend/server.py)) parameterized by instance name and listening port via command-line arguments:
 
