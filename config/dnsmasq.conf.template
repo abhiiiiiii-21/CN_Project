@@ -1,4 +1,9 @@
-listen-address=127.0.0.1,MAC1_IP
+# dnsmasq for the team zone
+# Rendered by render-configs.sh for Mac 1 (primary DNS).
+# The backup resolver uses config/phase2/dnsmasq-backup.conf.template.
+# Both files must carry identical host-record lines.
+
+listen-address=127.0.0.1,LISTEN_IP
 bind-interfaces
 
 no-resolv
@@ -6,11 +11,10 @@ server=COLLEGE_DNS
 server=1.1.1.1
 
 local=/TEAM.test/
+# TTL for our own records: clients cache the app name for 30 s (Ext B).
+local-ttl=30
 host-record=app.TEAM.test,MAC2_IP
 host-record=api.TEAM.test,MAC2_IP
-
-# Phase 2 Ext B: TTL (seconds) for local records. dnsmasq default is 0 = clients never cache.
-local-ttl=30
 
 domain-needed
 bogus-priv

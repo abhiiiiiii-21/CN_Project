@@ -34,3 +34,7 @@ config/cn-team.env
 .idea/
 *.swp
 *~
+
+# Rendered per-Mac configs (contain this team's IPs); regenerate with scripts/render-configs.sh
+config/live/*
+!config/live/.gitkeep

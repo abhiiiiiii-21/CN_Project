@@ -11,6 +11,12 @@ This directory contains shell automation scripts for certificate provisioning, c
 | `make-certs.sh` | Generates a team Certificate Authority (CA) and issues TLS certificates with SAN for `app.TEAM.test` and `api.TEAM.test` on Mac 2. Safely prevents overwriting existing CAs. | Run directly on Mac 2: `./scripts/make-certs.sh` (or `CN_ENV=/path/to/env ./scripts/make-certs.sh`). |
 | `render-configs.sh` | Reads environment variables from `cn-team.env` and renders template files from `config/` into `config/live/`. | Run with env path or defaults: `./scripts/render-configs.sh [path/to/env]`. |
 | `demo.sh` | Read-only verification suite diagnosing LAN connectivity, DNS resolution, backends, load balancing, TLS trust, HTTP protocol, caching, and layered health. | `./scripts/demo.sh [lan\|dns\|backends\|lb\|tls\|http\|cache\|check\|all]` |
+| `dns-ctl.sh` | Phase 2. Runs dnsmasq from `config/live/` as the primary (Mac 1) or backup (Mac 4) DNS. `point-app` rewrites the `app` record and restarts. | `./scripts/dns-ctl.sh primary\|backup start\|stop\|restart\|status\|point-app <ip>` |
+| `edge-apply.sh` | Phase 2. Copies the edge config into `$(brew --prefix)/etc/nginx/servers/`, runs `nginx -t`, then reloads or starts nginx. | `./scripts/edge-apply.sh primary\|standby\|stop\|status` |
+| `pf-isolate.sh` | Phase 2 Ext C. Loads `config/live/pf-backends.conf` into the pf anchor `com.apple/cn-isolate` so only the edge Macs reach ports 3001–3002. `/etc/pf.conf` is never edited. | `./scripts/pf-isolate.sh check\|enable\|disable\|status` |
+| `phase2-demo.sh` | Phase 2 client helpers: flush the DNS cache, show load balancing, watch DNS cutover, probe isolation, and query both DNS servers. | `./scripts/phase2-demo.sh flush\|lb [N]\|watch\|isolation\|dns` |
+
+Phase 2 needs `MAC4_IP` in `~/cn-team.env`. `render-configs.sh` now writes 6 files to `config/live/`: `dnsmasq.conf`, `dnsmasq-backup.conf`, `team-http.conf`, `team-https.conf` (X-Edge `mac2-primary`), `team-https-standby.conf` (X-Edge `mac3-standby`), and `pf-backends.conf`. `config/live/` holds per-Mac IPs, so it is no longer committed.
 
 ---
 

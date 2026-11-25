@@ -2,22 +2,22 @@
 
 ## Overview
 
-**Mac 2** functions as the network's edge reverse proxy and Layer 7 load balancer powered by `nginx`. It receives ingress traffic from client devices on HTTP port 8080 and HTTPS port 8443, terminates TLS connections, and distributes requests across the upstream backend pool on Mac 3.
+**Mac 2** functions as the network's edge reverse proxy and Layer 7 load balancer powered by `nginx`. It receives ingress traffic from client devices on HTTP port 8080 and HTTPS port 8443, terminates TLS connections, and distributes requests across the upstream backend pool: Backend A on Mac 3 and, from Phase 2, Backend B on Mac 4.
 
 ---
 
 ## Upstream Pool Configuration
 
-The load balancer upstream pool consists of the two backend instances on **Mac 3**:
+Phase 2 (4 Macs): Backend A runs on **Mac 3** and Backend B on **Mac 4**:
 
 ```nginx
 upstream team_backend {
-    server MAC3_IP:3001;
-    server MAC3_IP:3002;
+    server MAC3_IP:3001;   # Backend A, Mac 3
+    server MAC4_IP:3002;   # Backend B, Mac 4
 }
 ```
 
-Both backend instances run concurrently as isolated processes on Mac 3. When generating deployable configuration via `./scripts/render-configs.sh`, the placeholder `MAC3_IP` is replaced by the actual host IP defined in `~/cn-team.env` (e.g. `10.7.21.145`).
+In Phase 1 both backends ran on Mac 3. `./scripts/render-configs.sh` replaces the placeholders with the IPs in `~/cn-team.env`. Install and reload on Mac 2 with `./scripts/edge-apply.sh primary`.
 
 ---
 
@@ -34,11 +34,12 @@ Nginx injects standard proxy headers into the upstream request:
 - `X-Forwarded-For: $proxy_add_x_forwarded_for`
 - `X-Forwarded-Proto https`
 - `add_header X-Upstream-Addr $upstream_addr always;` (returns the upstream IP:port in response headers)
+- `add_header X-Edge mac2-primary always;` (Phase 2: names the edge that answered; the standby edge on Mac 3 sends `mac3-standby`)
 
 ### 2. Round-Robin Distribution
 By default, Nginx distributes incoming client requests across the upstream servers in round-robin fashion:
 - Upstream target 1: `$MAC3_IP:3001` (Backend A on Mac 3)
-- Upstream target 2: `$MAC3_IP:3002` (Backend B on Mac 3)
+- Upstream target 2: `$MAC4_IP:3002` (Backend B on Mac 4)
 
 > **Note on Sequence:** While round-robin scheduling balances load evenly across backend workers, connection keep-alive, TCP session reuse, or HTTP/2 stream multiplexing from a single client can influence the observed distribution sequence. A strictly alternating sequence is an observed lab result under discrete connections, not a universal protocol guarantee under all connection patterns. Overall distribution balances across both backends.
 
@@ -48,7 +49,7 @@ Failover is controlled via Nginx upstream error handling directives:
 - `proxy_read_timeout 5s;`
 - `proxy_next_upstream error timeout http_502 http_503;`
 
-If Backend A stops responding or encounters an error, Nginx transparently re-routes the pending client request to Backend B without returning a failure to the user.
+If Backend A stops responding or encounters an error, Nginx transparently re-routes the pending client request to Backend B without returning a failure to the user. Phase 2 details (passive health checks, 502 vs 504, the single point of failure, edge migration) are in [10-phase2-edge.md](10-phase2-edge.md).
 
 ---
 
@@ -57,7 +58,7 @@ If Backend A stops responding or encounters an error, Nginx transparently re-rou
 | Port | Protocol | Security | Role / Upstream Target |
 |---|---|---|---|
 | **8080** | HTTP | Plaintext | HTTP Ingress -> 301 Redirect to `https://$host:8443$request_uri` |
-| **8443** | HTTPS | TLS 1.2 / 1.3 | TLS Termination -> `http://team_backend` (Mac 3:3001 / Mac 3:3002) |
+| **8443** | HTTPS | TLS 1.2 / 1.3 | TLS Termination -> `http://team_backend` (Mac 3:3001 / Mac 4:3002) |
 
 ---
 
