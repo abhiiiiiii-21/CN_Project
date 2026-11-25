@@ -1,0 +1,68 @@
+LOCAL PRE-CHECK on Mac 3 (Kapish) — Extension C (pf isolation) & Extension E (standby edge)
+Host: Kapish's MacBook Pro (Mac 3)
+Date: Wed Nov 25 18:57:00 IST 2026
+OS: macOS Darwin arm64
+
+== 1. Tooling & Dependencies ==
+Python: Python 3.13.2
+nginx: nginx version: nginx/1.31.10 (Homebrew /opt/homebrew)
+pfctl: /sbin/pfctl
+
+== 2. Configuration Rendering ==
+Running: ./scripts/render-configs.sh
+Output:
+  [OK] Rendered config/live/dnsmasq.conf
+  [OK] Rendered config/live/dnsmasq-backup.conf
+  [OK] Rendered config/live/team-http.conf
+  [OK] Rendered config/live/team-https.conf
+  [OK] Rendered config/live/team-https-standby.conf
+  [OK] Rendered config/live/pf-backends.conf
+
+== 3. Extension C: Packet Filter (pf) Rules Analysis ==
+Source: config/live/pf-backends.conf
+Anchor: com.apple/cn-isolate (defined in stock /etc/pf.conf)
+Rules:
+  pass in quick on lo0 proto tcp from any to any port 3001:3002
+  pass in quick proto tcp from 10.7.19.92 to any port 3001:3002
+  pass in quick proto tcp from { 10.7.29.148 } to any port 3001:3002
+  block drop in quick proto tcp from any to any port 3001:3002
+
+Rule semantics:
+  - Rule 1 (lo0): Allows Mac 3 standby Nginx on loopback to reach Backend A (port 3001)
+  - Rule 2 (Mac 2): Allows Mac 2 primary edge proxy (10.7.19.92) to reach Backend A
+  - Rule 3 (Mac 3): Allows Mac 3 standby edge (10.7.29.148) to reach backends
+  - Rule 4 (Default drop): Silently drops all unauthorized ingress TCP connection attempts to ports 3001 and 3002
+
+Fault drill verification:
+  Command: sed -i '' "/from 10.7.19.92/d" config/live/pf-backends.conf
+  Result: Deletes Mac 2 access; { 10.7.29.148 } remains intact due to curly braces.
+  Behavior: Mac 2 edge times out (2s connect timeout) returning HTTP 504 Gateway Timeout.
+
+== 4. Extension E: Standby Nginx Configuration ==
+File: config/live/team-https-standby.conf
+Diff vs primary (config/live/team-https.conf):
+<         add_header X-Edge mac2-primary always;
+---
+>         add_header X-Edge mac3-standby always;
+
+SSL Configuration:
+  ssl_certificate: /opt/homebrew/etc/nginx/certs/app.crt
+  ssl_certificate_key: /opt/homebrew/etc/nginx/certs/app.key
+  SANs: app.team1.test, api.team1.test
+
+== 5. Backend A Service Health Check ==
+Endpoint: http://127.0.0.1:3001/api/status
+Response:
+  HTTP/1.0 200 OK
+  X-Backend: A
+  Cache-Control: no-store
+  Content-Type: application/json
+  Body: {"backend": "A", "status": "ok"}
+
+Endpoint: http://127.0.0.1:3001/api/info
+Response:
+  HTTP/1.0 200 OK
+  X-Backend: A
+  Cache-Control: public, max-age=60
+  ETag: "6402143662621d1b"
+  Conditional request (If-None-Match: "6402143662621d1b") -> HTTP/1.0 304 Not Modified
