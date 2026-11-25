@@ -68,7 +68,7 @@ log_header()  { echo -e "\n${BOLD}==============================================
 # TEST 1: LAN Connectivity Check (Exactly 3 Macs)
 # ------------------------------------------------------------------------------
 test_lan() {
-    log_header "TEST 1: LAN Reachability (3-Mac Architecture)"
+    log_header "TEST 1: LAN Reachability"
     local overall_pass=true
 
     check_host() {
@@ -104,7 +104,10 @@ test_lan() {
 
     check_host "Mac 1 (DNS)" "$MAC1_IP" 53
     check_host "Mac 2 (Nginx Edge / TLS)" "$MAC2_IP" 8443
-    check_host "Mac 3 (Backend Services)" "$MAC3_IP" 3001
+    check_host "Mac 3 (Backend A)" "$MAC3_IP" 3001
+    if [ -n "${MAC4_IP:-}" ]; then
+        check_host "Mac 4 (Backend B / backup DNS)" "$MAC4_IP" 3002
+    fi
 
     if [ "$overall_pass" = true ]; then
         log_pass "LAN connectivity check: PASS"
@@ -179,7 +182,8 @@ test_dns() {
 # TEST 3: Direct Backend Verification (Mac 3 :3001 and :3002)
 # ------------------------------------------------------------------------------
 test_backends() {
-    log_header "TEST 3: Direct Backend Services on Mac 3"
+    log_header "TEST 3: Direct Backend Services"
+    local B_IP="${MAC4_IP:-$MAC3_IP}"
     local overall_pass=true
 
     echo "1. Checking Backend A on http://$MAC3_IP:3001/api/status..."
@@ -195,9 +199,9 @@ test_backends() {
     fi
 
     echo ""
-    echo "2. Checking Backend B on http://$MAC3_IP:3002/api/status..."
+    echo "2. Checking Backend B on http://$B_IP:3002/api/status..."
     local resp_b
-    resp_b="$($CURL_BIN -sS --connect-timeout 3 -i "http://$MAC3_IP:3002/api/status" 2>&1 || true)"
+    resp_b="$($CURL_BIN -sS --connect-timeout 3 -i "http://$B_IP:3002/api/status" 2>&1 || true)"
     local hdr_b
     hdr_b="$(echo "$resp_b" | grep -i "^X-Backend:" | tr -d '\r' | awk '{print $2}')"
     if [ "$hdr_b" = "B" ]; then
@@ -215,7 +219,7 @@ test_backends() {
     etag_a="$(echo "$info_a" | grep -i "^ETag:" | tr -d '\r' | awk '{print $2}')"
 
     local info_b
-    info_b="$($CURL_BIN -sS --connect-timeout 3 -i "http://$MAC3_IP:3002/api/info" 2>&1 || true)"
+    info_b="$($CURL_BIN -sS --connect-timeout 3 -i "http://$B_IP:3002/api/info" 2>&1 || true)"
     local etag_b
     etag_b="$(echo "$info_b" | grep -i "^ETag:" | tr -d '\r' | awk '{print $2}')"
 

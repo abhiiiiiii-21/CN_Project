@@ -1,0 +1,10 @@
+# Ext C: backend isolation (pf). Same file on Mac 3 (Backend A) and Mac 4 (Backend B).
+# Loaded into the anchor com.apple/cn-isolate by scripts/pf-isolate.sh,
+# so /etc/pf.conf is never edited. Only the edge Macs may reach ports 3001-3002.
+# The standby-edge (Mac 3) address is written in braces on purpose: the fault
+# drill deletes lines matching "from <Mac 2 IP>", and the braces stop that
+# pattern from also matching a Mac 3 IP that starts with the same digits.
+pass in quick on lo0 proto tcp from any to any port 3001:3002
+pass in quick proto tcp from MAC2_IP to any port 3001:3002
+pass in quick proto tcp from { MAC3_IP } to any port 3001:3002
+block drop in quick proto tcp from any to any port 3001:3002
