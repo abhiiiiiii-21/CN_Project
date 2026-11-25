@@ -1,0 +1,9 @@
+Standby edge on Mac 3 tested directly from Mac 1 before the DNS change (--resolve, TLS verification on). Wed Nov 25 20:54:27 IST 2026
+DNS record at this time: 10.7.29.185
+HTTP/2 200  X-Backend=A X-Edge=mac3-standby upstream=10.7.1.253:3001
+HTTP/2 200  X-Backend=B X-Edge=mac3-standby upstream=10.7.23.21:3002
+HTTP/2 200  X-Backend=A X-Edge=mac3-standby upstream=10.7.1.253:3001
+HTTP/2 200  X-Backend=B X-Edge=mac3-standby upstream=10.7.23.21:3002
+HTTP/2 200  X-Backend=A X-Edge=mac3-standby upstream=10.7.1.253:3001
+HTTP/2 200  X-Backend=B X-Edge=mac3-standby upstream=10.7.23.21:3002
+backup DNS: 10.7.29.185
