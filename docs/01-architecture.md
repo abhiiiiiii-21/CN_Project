@@ -19,14 +19,14 @@ Phase 1 ran on three Macs, with both backends on Mac 3. That version of this doc
 
 Addresses are not hard-coded in templates. They come from `~/cn-team.env`.
 
-| Machine | Variable | IPv4 | MAC address, as seen on the LAN |
-|---|---|---|---|
-| Mac 1 | `MAC1_IP` | `10.7.30.25` | `e4:43:89:f1:51:ed` |
-| Mac 2 | `MAC2_IP` | `10.7.29.185` | `6:1e:db:4d:fe:de` |
-| Mac 3 | `MAC3_IP` | `10.7.1.253` | `aa:b6:b8:36:70:b0` |
-| Mac 4 | `MAC4_IP` | `10.7.23.21` | `f6:d8:7f:02:21:a1` |
+| Machine | Variable | IPv4 | Interface | Subnet mask | Default gateway | MAC address |
+|---|---|---|---|---|---|---|
+| Mac 1 | `MAC1_IP` | `10.7.30.25` | `en0` | `255.255.224.0` | `10.7.0.1` | `e4:43:89:f1:51:ed` |
+| Mac 2 | `MAC2_IP` | `10.7.29.185` | `en0` | `255.255.224.0` | `10.7.0.1` | `06:1e:db:4d:fe:de` |
+| Mac 3 | `MAC3_IP` | `10.7.1.253` | `en0` | `255.255.224.0` | `10.7.0.1` | `aa:b6:b8:36:70:b0` |
+| Mac 4 | `MAC4_IP` | `10.7.23.21` | `en0` | `255.255.224.0` | `10.7.0.1` | `f6:d8:7f:02:21:a1` |
 
-Mac 1: interface `en0`, subnet mask `255.255.224.0` (/19), default gateway `10.7.0.1`. All four addresses are inside `10.7.0.0/19`. Mac 1's MAC address was read from `ifconfig`; the other three from the ARP table on Mac 1. Upstream DNS: `8.8.8.8`, then `1.1.1.1`.
+The subnet is `10.7.0.0/19`, and all four addresses are inside it. Each row was read on that Mac (`evidence/phase2/mac1/network-details.txt`, `evidence/phase2/network-details-mac2-4.txt`). Upstream DNS: `8.8.8.8`, then `1.1.1.1`.
 
 DNS records, both resolvers, TTL 30 s: `app.team1.test` and `api.team1.test` point to Mac 2.
 

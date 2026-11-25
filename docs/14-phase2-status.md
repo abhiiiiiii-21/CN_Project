@@ -1,6 +1,6 @@
 # Phase 2 Status Tracker
 
-Last updated: 25 November 2026, after the Extension E timing capture. Requirements are the bullet points of section 7 of the course project guide.
+Last updated: 25 November 2026, after the network details of all four Macs were added. Requirements are the bullet points of section 7 of the course project guide.
 
 Legend: ✅ done with evidence · 🟡 partly shown · ⬜ not done
 
@@ -45,7 +45,7 @@ The fault is injected by the faculty at the evaluation, so it cannot be finished
 | Final report | ✅ Written. Team review pending |
 | Final presentation and individual viva | ⬜ At the evaluation |
 
-Also open: subnet mask, gateway and interface name for Mac 2, Mac 3 and Mac 4 (Phase 1 Task A, for the four-Mac layout). Practice run of the 11-step demonstration.
+Network details of all four Macs (interface, IP, subnet mask, gateway, MAC address) are in `docs/01-architecture.md`. Still open: practice run of the 11-step demonstration.
 
 ## Mac 1 (Abhishek)
 
