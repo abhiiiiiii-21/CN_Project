@@ -17,6 +17,7 @@ A private multi-tier network service built on a local LAN with **four Macs**: pr
 | Phase 2 final report | [docs/12-phase2-report.md](docs/12-phase2-report.md) |
 | Phase 2 guides: DNS, edge, backend and firewall | [docs/10-phase2-dns.md](docs/10-phase2-dns.md), [docs/10-phase2-edge.md](docs/10-phase2-edge.md), [docs/11-phase2-backend.md](docs/11-phase2-backend.md) |
 | What is done and what remains | [docs/14-phase2-status.md](docs/14-phase2-status.md) |
+| Mac 1 DNS commands and one-key control panel | [docs/16-mac1-commands.md](docs/16-mac1-commands.md) |
 | Mac 1 work log | [docs/15-worklog-mac1.md](docs/15-worklog-mac1.md) |
 | Troubleshooting runbook | [docs/13-troubleshooting-runbook.md](docs/13-troubleshooting-runbook.md) |
 | Phase 2 evidence | [evidence/phase2/](evidence/phase2/) |
@@ -51,6 +52,7 @@ When finished, restore DNS on each Mac with `sudo networksetup -setdnsservers Wi
 
 | Script | Use |
 |---|---|
+| `mac1.sh` | One-key control panel for Mac 1 (also `Mac1.command`) |
 | `render-configs.sh` | Build `config/live/` from the env file |
 | `dns-ctl.sh` | Start, stop, status and record change for either resolver |
 | `edge-apply.sh` | Apply the primary or standby nginx config, or stop nginx |
