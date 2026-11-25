@@ -1,0 +1,36 @@
+Integration test of the 4-Mac setup, run from Mac 1. Date: Wed Nov 25 19:03:59 IST 2026
+curl resolves with the IP returned by the Mac 1 DNS (--resolve); system DNS was not changed. TLS verification enabled.
+
+== DNS (Mac 1 primary)
+app.team1.test.		30	IN	A	10.7.29.185
+== DNS (Mac 4 backup)
+NO ANSWER
+
+== TLS
+* SSL connection using TLSv1.3 / AEAD-AES256-GCM-SHA384 / [blank] / UNDEF
+* ALPN: server accepted h2
+*  subject: CN=app.team1.test
+*  issuer: CN=team1 Local Root CA
+*  SSL certificate verify ok.
+
+== load balancing
+1: HTTP/2 200  X-Backend=B X-Edge=mac2-primary upstream=10.3.2.214:3002
+2: HTTP/2 200  X-Backend=A X-Edge=mac2-primary upstream=10.7.1.253:3001
+3: HTTP/2 200  X-Backend=B X-Edge=mac2-primary upstream=10.3.2.214:3002
+4: HTTP/2 200  X-Backend=A X-Edge=mac2-primary upstream=10.7.1.253:3001
+5: HTTP/2 200  X-Backend=B X-Edge=mac2-primary upstream=10.3.2.214:3002
+6: HTTP/2 200  X-Backend=A X-Edge=mac2-primary upstream=10.7.1.253:3001
+7: HTTP/2 200  X-Backend=B X-Edge=mac2-primary upstream=10.3.2.214:3002
+8: HTTP/2 200  X-Backend=A X-Edge=mac2-primary upstream=10.7.1.253:3001
+9: HTTP/2 200  X-Backend=B X-Edge=mac2-primary upstream=10.3.2.214:3002
+10: HTTP/2 200  X-Backend=A X-Edge=mac2-primary upstream=10.7.1.253:3001
+
+== caching
+HTTP/2 200 
+cache-control: public, max-age=60
+etag: "6402143662621d1b"
+conditional request: HTTP 304
+
+== direct backend ports from Mac 1 (pf not yet demonstrated)
+10.7.1.253:3001 open
+10.3.2.214:3002 open
