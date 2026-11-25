@@ -1,0 +1,14 @@
+# Ext E step 60, run on Mac 2 (10.7.29.185) at 2026-11-25 21:05:00
+# DNS switched to Mac 3 by both resolvers; client gets the standby edge
+
+$ dig app.team1.test @10.7.30.25 +short
+10.7.1.253
+$ dig app.team1.test @10.7.23.21 +short
+10.7.1.253
+$ dscacheutil -q host -a name app.team1.test   (system resolver)
+ip_address: 10.7.1.253
+$ curl -sI https://app.team1.test:8443/api/status
+HTTP/2 200 
+x-backend: A
+x-edge: mac3-standby
+x-upstream-addr: 10.7.1.253:3001

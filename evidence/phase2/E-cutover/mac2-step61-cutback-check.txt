@@ -1,0 +1,18 @@
+# Ext E step 61 cut-back, run on Mac 2 (10.7.29.185) at 2026-11-25 21:06:11, after both resolvers pointed back to Mac 2 and the cache was flushed
+
+$ dig app.team1.test @10.7.30.25 +short
+10.7.29.185
+$ dig app.team1.test @10.7.23.21 +short
+10.7.29.185
+$ curl -sI https://app.team1.test:8443/api/status
+HTTP/2 200 
+x-backend: B
+x-edge: mac2-primary
+
+$ ./scripts/demo.sh check
+TEST 8: Layered Diagnostic Pipeline (DNS -> TCP -> TLS -> HTTP)
+Layer 1 [DNS]: Resolving app.team1.test via Mac 1 (10.7.30.25:53)... OK (app.team1.test -> 10.7.29.185)
+Layer 2 [TCP]: Connecting to Mac 2 at 10.7.29.185:8443... OK (Port 8443 open and accepting connections)
+Layer 3 [TLS]: Handshaking and validating certificate for app.team1.test... OK (Trusted CA + SAN validated)
+Layer 4 [HTTP]: Requesting application payload from /api/status... OK (HTTP 200 OK | Backend: B)
+[PASS] All layers (DNS -> TCP -> TLS -> HTTP) verified successfully: PASS
