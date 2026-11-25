@@ -1,0 +1,29 @@
+Extension E: a cached client still on the old edge while a fresh lookup already gets the standby edge.
+Client DNS on Mac 2 and Mac 4: Mac 1 only. Output copied from those Macs.
+On Mac 1, "point-app 10.7.1.253" restarted dnsmasq; the new process start time is 23:25:12.
+Times come from each Mac's own clock; clock offsets between the Macs were not measured.
+
+== Mac 2, fresh lookup (cache flushed first)
+23:25:12
+[OK] macOS DNS cache flushed
+FRESH-LOOKUP
+name: app.team1.test
+ip_address: 10.7.1.253
+23:25:12
+(The HTTP check on the same command line printed nothing in this run; see the follow-up below.)
+
+== Mac 4, cached client (phase2-demo.sh watch, excerpt)
+23:25:09  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: A
+23:25:11  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: B
+23:25:13  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: A
+23:25:16  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: B
+23:25:18  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: A
+23:25:20  system-resolver: 10.7.1.253       HTTP 200  X-Edge: mac3-standby  X-Backend: A
+23:25:22  system-resolver: 10.7.1.253       HTTP 200  X-Edge: mac3-standby  X-Backend: B
+
+== Mac 2, follow-up HTTP check a few minutes later, in Apple's Terminal app
+$ nc -vz -G 3 10.7.1.253 8443
+Connection to 10.7.1.253 port 8443 [tcp/pcsync-https] succeeded!
+$ /usr/bin/curl -sS -I https://app.team1.test:8443/api/status | grep -iE "^HTTP|x-edge"
+HTTP/2 200
+x-edge: mac3-standby
