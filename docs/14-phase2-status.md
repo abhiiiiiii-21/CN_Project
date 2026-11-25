@@ -1,6 +1,6 @@
 # Phase 2 Status Tracker
 
-Last updated: 25 November 2026, after pull request 3 was merged. Requirements are the bullet points of section 7 of the course project guide.
+Last updated: 25 November 2026, after the firewall copies from Mac 3 and Mac 4 were added. Requirements are the bullet points of section 7 of the course project guide.
 
 Legend: ✅ done with evidence · 🟡 partly shown · ⬜ not done
 
@@ -20,7 +20,7 @@ Legend: ✅ done with evidence · 🟡 partly shown · ⬜ not done
 | C | Only the edge reaches 3001 and 3002 | ✅ | `C-isolation/mac1-client-blocked.txt`. The rules also allow Mac 3, the standby edge |
 | C | Use pf rules | ✅ | `C-isolation/03-pf-counters-and-rollback.txt` |
 | C | Edge connects, client cannot | ✅ | `C-isolation/02-edge-allowed.png`, `mac1-client-blocked.txt` |
-| C | Keep a rollback copy and restore afterwards | 🟡 | Restore shown. A saved copy from Mac 3 and Mac 4 is still missing |
+| C | Keep a rollback copy and restore afterwards | ✅ | Restore shown. Copies of the restored setup: `C-isolation/pf-rollback-copy-mac3.txt`, `pf-rollback-copy-mac4.txt`. Taken after the rollback; take a copy before enabling at the final demo |
 | D | nginx routes only to the healthy backend | ✅ | `D-ha/backend-a-down.pcap`, `03-nginx-error.png` |
 | D | Stop Backend A; Backend B serves everything | ✅ | `D-ha/02-a-down.png` |
 | D | Restart A; balancing resumes | ✅ | `D-ha/04-a-back.png` |
@@ -29,7 +29,7 @@ Legend: ✅ done with evidence · 🟡 partly shown · ⬜ not done
 | E | Point DNS at the standby | ✅ | `E-cutover/client-watch-cutover.txt` |
 | E | Cached client on the old edge while new lookups reach the standby | 🟡 | Cached client shown. A fresh lookup captured in the same window is still missing |
 
-**Count: 18 of 20 done, 2 partly shown, 0 not started.** This counts requirements, not marks.
+**Count: 19 of 20 done, 1 partly shown, 0 not started.** This counts requirements, not marks.
 
 ## Extension F
 
@@ -41,7 +41,7 @@ The fault is injected by the faculty at the evaluation, so it cannot be finished
 |---|---|
 | Architecture document, updated for Phase 2 | ✅ Written |
 | Configuration bundle | ✅ In `config/` and `docs/` |
-| Evidence folder | 🟡 The two partial items above |
+| Evidence folder | 🟡 The partial item above (Extension E timing) |
 | Final report | ✅ Written. Team review pending |
 | Final presentation and individual viva | ⬜ At the evaluation |
 

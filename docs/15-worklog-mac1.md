@@ -23,3 +23,4 @@ One entry for each piece of work, newest at the bottom. Times are IST. Where a t
 | 22:59 | Extension B: manual cache flush test | Old address before the flush, new address right after | `d69a6e8` |
 | 23:03 | Merged pull request 3; confirmed both backend ports open from Mac 1 | Merged | `ebc220a` |
 | 23:12 | Added status tracker and this work log; saved Mac 1 network details and the DNS config in use; corrected an outdated line in the DNS guide | Tracker: 18 of 20 requirements done, 2 partly shown | this commit |
+| 23:18 | Added the firewall copies sent from Mac 3 and Mac 4; updated tracker and report | Extension C requirements complete; tracker 19 of 20 | this commit |
