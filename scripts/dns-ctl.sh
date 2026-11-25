@@ -115,6 +115,8 @@ case "$ACTION" in
         ESCAPED_DOMAIN="$(printf '%s' "$APP_DOMAIN" | sed 's/\./\\./g')"
         sed -i '' -E "s|^host-record=$ESCAPED_DOMAIN,.*|host-record=$APP_DOMAIN,$NEW_IP|" "$CONF"
         echo "$APP_DOMAIN -> $NEW_IP"
+        # dnsmasq reads host-record only at startup, so a running server must be restarted.
+        do_stop
         do_start
         ;;
     *) usage ;;
