@@ -1,0 +1,14 @@
+Primary (Mac 1) and backup (Mac 4) resolvers queried from Mac 1, both running. Date: Wed Nov 25 19:32:48 IST 2026
+This is the state before failover; the primary has not been stopped.
+
+$ dig app.team1.test @10.7.30.25 +noall +answer
+app.team1.test.		30	IN	A	10.7.29.185
+
+$ dig api.team1.test @10.7.30.25 +noall +answer
+api.team1.test.		30	IN	A	10.7.29.185
+
+$ dig app.team1.test @10.7.23.21 +noall +answer
+app.team1.test.		30	IN	A	10.7.29.185
+
+$ dig api.team1.test @10.7.23.21 +noall +answer
+api.team1.test.		30	IN	A	10.7.29.185

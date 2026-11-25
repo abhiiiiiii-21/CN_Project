@@ -17,7 +17,7 @@ Status: draft. Results are filled in only after the matching 4-Mac test has been
 
 | Extension | Test | Result |
 |---|---|---|
-| A — Backup DNS | Stop the primary; clients still resolve | Pending 4-Mac test |
+| A — Backup DNS | Stop the primary; clients still resolve | Partial: both resolvers give the same answers (`evidence/phase2/A-backup-dns/mac1-both-resolvers.txt`). Failover test pending |
 | B — TTL | Change a record; old answer until TTL expiry; flush | Partial: the live primary returns TTL 30 (`evidence/phase2/B-ttl/mac1-primary-dns-live.txt`). Record change on the LAN, client caching and flush are pending |
 | C — Isolation | Client blocked from 3001/3002; edge allowed | Pending |
 | D — HA failover | Stop Backend A; requests still succeed | Pending |
