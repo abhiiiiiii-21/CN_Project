@@ -1,0 +1,13 @@
+Ext C: firewall enabled on Mac 3 and Mac 4. From Mac 1 (a plain client). Wed Nov 25 20:37:27 IST 2026
+From this Mac (10.7.30.25 )
+  Backend A (Mac 3)      10.7.1.253:3001  [BLOCKED] no reply (timed out): dropped by firewall
+  Backend B (Mac 4)      10.7.23.21:3002  [BLOCKED] no reply (timed out): dropped by firewall
+  Edge (via DNS)         https://app.team1.test:8443/api/status  HTTP 200
+  edge request: HTTP/2 200  X-Backend=B upstream=10.7.23.21:3002
+  edge request: HTTP/2 200  X-Backend=A upstream=10.7.1.253:3001
+  edge request: HTTP/2 200  X-Backend=B upstream=10.7.23.21:3002
+  edge request: HTTP/2 200  X-Backend=A upstream=10.7.1.253:3001
+  edge request: HTTP/2 200  X-Backend=B upstream=10.7.23.21:3002
+  edge request: HTTP/2 200  X-Backend=A upstream=10.7.1.253:3001
+  edge request: HTTP/2 200  X-Backend=B upstream=10.7.23.21:3002
+  edge request: HTTP/2 200  X-Backend=A upstream=10.7.1.253:3001
