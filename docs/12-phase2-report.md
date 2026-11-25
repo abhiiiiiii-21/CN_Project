@@ -19,7 +19,7 @@ Status: draft. Results are filled in only after the matching 4-Mac test has been
 |---|---|---|
 | A — Backup DNS | Stop the primary; clients still resolve | Passed on the Mac 2 client: with the primary stopped, the system resolver returned the Mac 2 address and HTTPS returned 200 |
 | B — TTL | Change a record; old answer until TTL expiry; flush | Passed: after the change the Mac 4 client kept the old address for about 12 s, then switched. After the restore with a flush it switched back within about 4 s (`evidence/phase2/B-ttl/`) |
-| C — Isolation | Client blocked from 3001/3002; edge allowed | Passed from the Mac 1 client: both ports timed out; 8/8 requests through the edge returned 200, alternating A and B (`evidence/phase2/C-isolation/mac1-client-blocked.txt`). Rollback not yet shown |
+| C — Isolation | Client blocked from 3001/3002; edge allowed | Passed from the Mac 1 client: both ports timed out; 8/8 requests through the edge returned 200, alternating A and B (`evidence/phase2/C-isolation/mac1-client-blocked.txt`). Mac 2 can still connect to both (`02-edge-allowed.png`). Rollback not yet shown |
 | D — HA failover | Stop Backend A; requests still succeed | Passed (Mac 2 evidence): 10/10 returned 200 from Backend B with A stopped; 6/6 split 3/3 after restart (`evidence/phase2/D-ha/`) |
 | E — Edge migration | Point DNS at the standby edge | Pending |
 
