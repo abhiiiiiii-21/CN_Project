@@ -1,0 +1,11 @@
+Mac 4 client output of ./scripts/phase2-demo.sh watch, copied from that Mac. Excerpt around the restore with cache flush.
+Client DNS: Mac 1 only. On Mac 1 the restarted dnsmasq (record back to 10.7.29.185) has process start time 20:23:20.
+The flush (./scripts/phase2-demo.sh flush) was to be run on Mac 4 as soon as Mac 1 showed RUNNING.
+The flush output and the time it was run are not part of this excerpt.
+
+20:23:17  system-resolver: 10.7.1.253       HTTP ---  X-Edge:               X-Backend:
+20:23:19  system-resolver: 10.7.1.253       HTTP ---  X-Edge:               X-Backend:
+20:23:22  system-resolver: 10.7.1.253       HTTP ---  X-Edge:               X-Backend:
+20:23:24  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: A
+20:23:26  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: B
+20:23:28  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: A

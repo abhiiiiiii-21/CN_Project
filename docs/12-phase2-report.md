@@ -7,7 +7,7 @@ Status: draft. Results are filled in only after the matching 4-Mac test has been
 | Area | Phase 1 | Phase 2 | Status |
 |---|---|---|---|
 | Topology | 3 Macs, both backends on Mac 3 | 4 Macs, Backend B on Mac 4 | Planned |
-| DNS record TTL | 0 (dnsmasq default) | 30 s | Live on the primary; checked from Mac 1 |
+| DNS record TTL | 0 (dnsmasq default) | 30 s | Tested with the Mac 4 client |
 | DNS resolvers | Primary only | Primary (Mac 1) and backup (Mac 4) | Configured, checked locally on Mac 1 |
 | Failover | — | nginx passive health checks | Pending (Mac 2) |
 | Backend access | Open on the LAN | Edge hosts only (pf) | Pending (Mac 3, Mac 4) |
@@ -18,7 +18,7 @@ Status: draft. Results are filled in only after the matching 4-Mac test has been
 | Extension | Test | Result |
 |---|---|---|
 | A — Backup DNS | Stop the primary; clients still resolve | Passed on the Mac 2 client: with the primary stopped, the system resolver returned the Mac 2 address and HTTPS returned 200 |
-| B — TTL | Change a record; old answer until TTL expiry; flush | Partial: the live primary returns TTL 30 (`evidence/phase2/B-ttl/mac1-primary-dns-live.txt`). Record change on the LAN, client caching and flush are pending |
+| B — TTL | Change a record; old answer until TTL expiry; flush | Passed: after the change the Mac 4 client kept the old address for about 12 s, then switched. After the restore with a flush it switched back within about 4 s (`evidence/phase2/B-ttl/`) |
 | C — Isolation | Client blocked from 3001/3002; edge allowed | Pending |
 | D — HA failover | Stop Backend A; requests still succeed | Passed (Mac 2 evidence): 10/10 returned 200 from Backend B with A stopped; 6/6 split 3/3 after restart (`evidence/phase2/D-ha/`) |
 | E — Edge migration | Point DNS at the standby edge | Pending |
@@ -35,7 +35,7 @@ Mac 4 runs a second dnsmasq with the same `app` and `api` records, and clients l
 Evidence: `evidence/phase2/A-backup-dns/`. `mac1-both-resolvers.txt` and `mac1-primary-stopped.txt` were taken on Mac 1. The Mac 2 capture (`dns-failover.pcap`) and screenshots are in the same folder.
 
 ### Extension B — DNS TTL and record change (Abhishek)
-Pending the 4-Mac test.
+`local-ttl=30` makes dnsmasq give the team records a 30 s TTL; its default is 0, which tells clients not to cache. With Mac 4 using only the primary, `app.team1.test` was changed from Mac 2 (10.7.29.185) to Mac 3 (10.7.1.253). The restarted dnsmasq started at 20:10:58, but the client's system resolver returned the old address up to 20:11:10 and the new one from 20:11:12: it was reusing its cached answer. The delay is whatever is left of the TTL, so it can be anything up to 30 s. After switching, web requests failed because the test did not include a standby edge. For the restore, the client's cache was to be flushed as soon as the primary was running again (started 20:23:20); the client showed the old address at 20:23:22 and the correct one at 20:23:24. The flush output with its time was not captured with that run, so the watch log alone does not prove the flush caused the switch. In a production migration, the TTL is lowered in advance and the old server is kept running until cached answers have expired.
 
 ### Extension C — Service isolation (Kapish)
 Service isolation restricts access to backend application ports (3001 and 3002) using macOS `pf` (packet filter) anchor rules (`com.apple/cn-isolate`). The rules allow incoming TCP traffic strictly from local loopback (`lo0`), Mac 2 primary edge proxy (`$MAC2_IP`), and Mac 3 standby edge proxy (`{ $MAC3_IP }`), while dropping all other incoming packets without reply (`block drop in quick`). This guarantees that external clients cannot bypass the edge security layer or access backends directly. The configuration was verified using `./scripts/pf-isolate.sh check` and rule syntax parsing.
