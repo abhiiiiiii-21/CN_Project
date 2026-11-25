@@ -1,0 +1,5 @@
+Before Ext C (firewall not yet enabled), from Mac 1 using the team DNS. Wed Nov 25 20:26:47 IST 2026
+From this Mac (10.7.30.25 )
+  Backend A (Mac 3)      10.7.1.253:3001  [OPEN]
+  Backend B (Mac 4)      10.7.23.21:3002  [OPEN]
+  Edge (via DNS)         https://app.team1.test:8443/api/status  HTTP 200
