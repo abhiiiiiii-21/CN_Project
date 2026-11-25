@@ -17,7 +17,7 @@ Status: draft. Results are filled in only after the matching 4-Mac test has been
 
 | Extension | Test | Result |
 |---|---|---|
-| A — Backup DNS | Stop the primary; clients still resolve | Partial: both resolvers give the same answers (`evidence/phase2/A-backup-dns/mac1-both-resolvers.txt`). Failover test pending |
+| A — Backup DNS | Stop the primary; clients still resolve | Passed on the Mac 2 client: with the primary stopped, the system resolver returned the Mac 2 address and HTTPS returned 200 |
 | B — TTL | Change a record; old answer until TTL expiry; flush | Partial: the live primary returns TTL 30 (`evidence/phase2/B-ttl/mac1-primary-dns-live.txt`). Record change on the LAN, client caching and flush are pending |
 | C — Isolation | Client blocked from 3001/3002; edge allowed | Pending |
 | D — HA failover | Stop Backend A; requests still succeed | Pending |
@@ -30,7 +30,9 @@ Pending (Extension F).
 ## Learning summary
 
 ### Extension A — Backup DNS resolver (Abhishek)
-Pending the 4-Mac test.
+Mac 4 runs a second dnsmasq with the same `app` and `api` records, and clients list Mac 1 first and Mac 4 second. With dnsmasq stopped on Mac 1, the Mac 2 client flushed its cache; a direct query to Mac 1 got no answer, a query to Mac 4 and the normal system lookup returned the Mac 2 address, and HTTPS returned 200. In the capture on Mac 2, the query for `app.team1.test` went to Mac 1 at 19:43:55.377 and, with no reply, to Mac 4 at 19:43:57.389, about 2 s later. The client's resolver switched servers without any change on the client. The two servers are not synchronised, so every record change must be made on both. This is different from an application failure, where the name still resolves but the edge returns 502.
+
+Evidence: `evidence/phase2/A-backup-dns/`. `mac1-both-resolvers.txt` and `mac1-primary-stopped.txt` were taken on Mac 1. The Mac 2 capture (`dns-failover.pcap`) and screenshots are still to be added.
 
 ### Extension B — DNS TTL and record change (Abhishek)
 Pending the 4-Mac test.
