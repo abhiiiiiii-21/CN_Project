@@ -1,4 +1,10 @@
-listen-address=127.0.0.1,MAC1_IP
+# dnsmasq for the team zone
+# Rendered twice by render-configs.sh:
+#   config/live/dnsmasq.conf         -> Mac 1 (primary DNS), listens on Mac 1's IP
+#   config/live/dnsmasq-backup.conf  -> Mac 4 (backup DNS),  listens on Mac 4's IP
+# Both files must carry identical host-record lines (checked in step 39).
+
+listen-address=127.0.0.1,LISTEN_IP
 bind-interfaces
 
 no-resolv
@@ -6,6 +12,8 @@ server=COLLEGE_DNS
 server=1.1.1.1
 
 local=/TEAM.test/
+# TTL for our own records: clients cache the app name for 30 s (Ext B).
+local-ttl=30
 host-record=app.TEAM.test,MAC2_IP
 host-record=api.TEAM.test,MAC2_IP
 

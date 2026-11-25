@@ -1,13 +1,14 @@
 # ==============================================================================
-# Nginx HTTPS Load Balancer Configuration Template (Mac 2)
+# Nginx HTTPS Load Balancer Configuration Template
 # ==============================================================================
-# Upstream backends located on Mac 3 (Ports 3001 and 3002)
-# TLS termination on Mac 2 edge proxy (Port 8443)
-# NOTE: Both backends run as separate processes on Mac 3.
+# Rendered twice by render-configs.sh:
+#   config/live/team-https.conf          -> Mac 2 primary edge  (X-Edge: mac2-primary)
+#   config/live/team-https-standby.conf  -> Mac 3 standby edge  (X-Edge: mac3-standby)
+# Backend A runs on Mac 3 :3001, Backend B on Mac 4 :3002.
 
 upstream team_backend {
     server MAC3_IP:3001;
-    server MAC3_IP:3002;
+    server MAC4_IP:3002;
 }
 
 server {
@@ -24,7 +25,7 @@ server {
     ssl_ciphers HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers on;
 
-    # Reverse proxy to Mac 3 upstream pool
+    # Reverse proxy to the backend pool
     location / {
         proxy_pass http://team_backend;
         proxy_set_header Host $host;
@@ -32,7 +33,8 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
 
-        # Upstream tracking header
+        # Which edge answered, and which upstream(s) it tried
+        add_header X-Edge EDGE_NAME always;
         add_header X-Upstream-Addr $upstream_addr always;
 
         # Timeouts and failover settings
