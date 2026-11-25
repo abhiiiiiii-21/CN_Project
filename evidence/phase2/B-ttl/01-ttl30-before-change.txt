@@ -1,0 +1,3 @@
+Before the record change. Wed Nov 25 20:04:44 IST 2026
+$ dig app.team1.test @10.7.30.25 +noall +answer
+app.team1.test.		30	IN	A	10.7.29.185

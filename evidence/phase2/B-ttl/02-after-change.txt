@@ -1,0 +1,3 @@
+After point-app 10.7.1.253. The command finished at 20:10:59 (it waited for the sudo password first). Queried Wed Nov 25 20:11:17 IST 2026
+$ dig app.team1.test @10.7.30.25 +noall +answer
+app.team1.test.		30	IN	A	10.7.1.253

@@ -1,0 +1,14 @@
+Mac 4 client output of ./scripts/phase2-demo.sh watch, copied from that Mac. Excerpt around the record change.
+Client DNS: Mac 1 only. On Mac 1, "point-app 10.7.1.253" had restarted dnsmasq and finished by 20:10:59.
+
+20:10:54  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: A
+20:10:57  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: B
+20:10:59  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: A
+20:11:01  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: B
+20:11:03  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: A
+20:11:05  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: B
+20:11:08  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: A
+20:11:10  system-resolver: 10.7.29.185      HTTP 200  X-Edge: mac2-primary  X-Backend: B
+20:11:12  system-resolver: 10.7.1.253       HTTP ---  X-Edge:               X-Backend:
+20:11:14  system-resolver: 10.7.1.253       HTTP ---  X-Edge:               X-Backend:
+20:11:16  system-resolver: 10.7.1.253       HTTP ---  X-Edge:               X-Backend:
