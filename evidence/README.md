@@ -1,5 +1,7 @@
 # Evidence & Verification Artifacts
 
+> **Phase 1 document.** It describes the earlier three-Mac layout. For the current four-Mac system see [the Phase 2 evidence](phase2/).
+
 This directory stores experimental evidence, terminal outputs, screenshots, and packet captures gathered during test execution and demonstration of the **Computer Networks Phase 1 — Private Network Service Platform**.
 
 > **Note:** All evidence artifacts in this directory were captured empirically during lab testing and live verification across the 3-Mac deployment.

@@ -1,17 +1,18 @@
 # Phase 2 Final Report
 
-Status: draft. Results are filled in only after the matching 4-Mac test has been run.
+Team: Abhishek (Mac 1), Modi (Mac 2), Kapish (Mac 3), Vikash (Mac 4). Tests were run on the four Macs on 25 November 2026. A full read-only check (`./scripts/demo.sh all`) passed all 8 tests from Mac 1: `evidence/phase2/final-demo-all.txt`.
 
 ## What changed from Phase 1
 
-| Area | Phase 1 | Phase 2 | Status |
-|---|---|---|---|
-| Topology | 3 Macs, both backends on Mac 3 | 4 Macs, Backend B on Mac 4 | Planned |
-| DNS record TTL | 0 (dnsmasq default) | 30 s | Tested with the Mac 4 client |
-| DNS resolvers | Primary only | Primary (Mac 1) and backup (Mac 4) | Configured, checked locally on Mac 1 |
-| Failover | — | nginx passive health checks | Pending (Mac 2) |
-| Backend access | Open on the LAN | Edge hosts only (pf) | Pending (Mac 3, Mac 4) |
-| Edge | Mac 2 only | Standby edge on Mac 3, DNS cutover | Pending |
+| Area | Phase 1 | Phase 2 |
+|---|---|---|
+| Topology | 3 Macs, both backends on Mac 3 | 4 Macs, Backend B on Mac 4 |
+| DNS record TTL | 0 (dnsmasq default) | 30 s |
+| DNS resolvers | Primary only | Primary (Mac 1) and backup (Mac 4) |
+| Failover | Not covered by a Phase 2 test | nginx passive health checks, tested by stopping Backend A |
+| Backend access | Open on the LAN | `pf` rules allow only the edge Macs (enabled for the test, then rolled back) |
+| Edge | Mac 2 only | Standby edge on Mac 3, DNS cutover tested |
+| Operations | Manual commands | Scripts for DNS, edge, firewall and client demos |
 
 ## Resilience tests and results
 
@@ -25,13 +26,15 @@ Status: draft. Results are filled in only after the matching 4-Mac test has been
 
 ## Troubleshooting findings
 
-Faults found while setting up the 4-Mac network. These happened on their own; the faculty-injected challenge (Extension F) is still pending.
+Faults found while setting up the 4-Mac network. These happened on their own. The faculty-injected challenge takes place at the evaluation.
 
 | Symptom | Layer | How it was isolated | Cause and fix |
 |---|---|---|---|
 | Backup DNS gave no answer | DNS | Ping and port 3002 worked; TCP 53 was refused and the UDP query timed out | Nothing was reachable on port 53 at Mac 4's address. It answered after Mac 4 updated its address and restarted the backup resolver |
 | All HTTPS requests failed on Mac 4 | TLS | The name resolved and TCP connected; `curl -v` showed `unable to get local issuer certificate` | Mac 4 did not trust the team root CA. Fixed by installing the CA that signed the edge certificate, after checking its fingerprint |
 | Mac 3 env file had an old address | Configuration | `MAC3_IP` differed from the address on `en0` | The file was from an earlier session. Replaced with the current four addresses before enabling the firewall |
+
+**Practice drill 1 (guided; the fault had been disclosed beforehand).** The upstream port for Backend A on Mac 2 was changed from 3001 to 3005. Client settings, both resolvers, TCP to the edge and TLS were healthy. All requests returned 200 but only Backend B answered. `x-upstream-addr` showed nginx trying Mac 3 on 3005; from Mac 1, port 3001 accepted connections and 3005 was refused; the nginx error log showed `Connection refused` for 3005. After re-rendering the config and reloading nginx, both backends answered again. Lesson: a 200 response does not show that both backends are healthy. Evidence: `evidence/phase2/F-troubleshooting/`.
 
 ## Learning summary
 
@@ -49,12 +52,12 @@ Service isolation restricts access to backend application ports (3001 and 3002) 
 **Measured results.** With the rules enabled on Mac 3 and Mac 4, both backend ports timed out from Mac 1, Mac 2 could connect to both, and 8/8 requests through the edge returned 200, alternating A and B. The block rule counted 4 packets on Mac 4 and 2 on Mac 3. After `pf-isolate.sh disable` on both, both ports were open from Mac 1 again.
 
 ### Extension D — High-Availability Failover (Modi & Kapish)
-Demonstrates active fault tolerance using Nginx passive health checks. When Backend A on Mac 3 is stopped (`kill` or `Ctrl-C`), Nginx detects the connection failure (`Connection refused`), immediately triggers `proxy_next_upstream`, and routes pending client requests seamlessly to Backend B on Mac 4 with zero downtime (`HTTP 200`, `X-Backend: B`). When Backend A is restarted on Mac 3, Nginx automatically resumes round-robin distribution after its health check window expires.
+Demonstrates fault tolerance using nginx passive health checks. When Backend A on Mac 3 is stopped (`kill` or `Ctrl-C`), Nginx detects the connection failure (`Connection refused`), immediately triggers `proxy_next_upstream`, and routes pending client requests seamlessly to Backend B on Mac 4 with zero downtime (`HTTP 200`, `X-Backend: B`). When Backend A is restarted on Mac 3, Nginx automatically resumes round-robin distribution after its health check window expires.
 
 ### Extension E — DNS-based Edge Migration (Kapish & Abhishek)
-Demonstrates blue-green zero-downtime edge cutover. A standby Nginx instance configured on Mac 3 (`team-https-standby.conf`, setting `X-Edge: mac3-standby`) is deployed with matching TLS certificates (`app.crt` and `app.key`). DNS records for `app.team1.test` are shifted from Mac 2 to Mac 3 across both primary and backup resolvers. Cached clients continue hitting Mac 2 until the 30-second TTL expires, while new requests and flushed clients immediately route through Mac 3's standby edge.
+Demonstrates blue-green zero-downtime edge cutover. A standby Nginx instance configured on Mac 3 (`team-https-standby.conf`, setting `X-Edge: mac3-standby`) is deployed with matching TLS certificates (`app.crt` and `app.key`). DNS records for `app.team1.test` are shifted from Mac 2 to Mac 3 across both primary and backup resolvers. Cached clients continue to use Mac 2 until their cached answer expires (at most 30 s), while fresh lookups receive Mac 3's address.
 
 **Measured results (DNS side, Abhishek).** The standby was first tested from Mac 1 with `curl --resolve`, before any DNS change. At the cutover the primary restarted with the new record at 21:02:54; the Mac 4 client kept its cached address until 21:03:17 and used the standby from 21:03:20. At the cut back the primary restarted at 21:05:42; the client stayed on the standby until 21:05:55 and returned to Mac 2 at 21:05:57. Both edges stayed up, so every watch line shown returned HTTP 200. The old server must therefore keep running for at least the TTL after a cutover. A separate flushed-client check was not captured in this run.
 
 ### Extension F — Troubleshooting challenge (all)
-Pending.
+We diagnose in a fixed order: client DNS settings, DNS, TCP, TLS, then HTTP, stopping at the first layer that fails and changing nothing until the broken layer is named. The runbook (`docs/13-troubleshooting-runbook.md`) lists a check and a healthy result for each layer. In one guided practice drill, layers up to TLS were healthy and every request returned 200, yet only Backend B answered; the upstream header, a direct port test and the nginx error log traced this to a wrong upstream port. The main lesson is that a successful status code does not prove that every component is healthy. The faculty-injected fault is handled live at the evaluation.
