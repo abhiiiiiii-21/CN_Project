@@ -21,7 +21,7 @@ Status: draft. Results are filled in only after the matching 4-Mac test has been
 | B — TTL | Change a record; old answer until TTL expiry; flush | Passed: after the change the Mac 4 client kept the old address for about 12 s, then switched. After the restore with a flush it switched back within about 4 s (`evidence/phase2/B-ttl/`) |
 | C — Isolation | Client blocked from 3001/3002; edge allowed | Passed from the Mac 1 client: both ports timed out; 8/8 requests through the edge returned 200, alternating A and B (`evidence/phase2/C-isolation/mac1-client-blocked.txt`). Mac 2 can still connect to both (`02-edge-allowed.png`). Rollback not yet shown |
 | D — HA failover | Stop Backend A; requests still succeed | Passed (Mac 2 evidence): 10/10 returned 200 from Backend B with A stopped; 6/6 split 3/3 after restart (`evidence/phase2/D-ha/`) |
-| E — Edge migration | Point DNS at the standby edge | Cutover passed: the Mac 4 client stayed on `mac2-primary` until 21:03:17 (primary DNS restarted 21:02:54) and used `mac3-standby` from 21:03:20, with HTTP 200 on every line shown (`evidence/phase2/E-cutover/`). Cut back pending |
+| E — Edge migration | Point DNS at the standby edge | Passed: after the cutover the Mac 4 client stayed on `mac2-primary` until 21:03:17 and used `mac3-standby` from 21:03:20; after the cut back it returned at 21:05:57. HTTP 200 on every watch line shown (`evidence/phase2/E-cutover/`) |
 
 ## Troubleshooting findings
 
@@ -45,6 +45,8 @@ Demonstrates active fault tolerance using Nginx passive health checks. When Back
 
 ### Extension E — DNS-based Edge Migration (Kapish & Abhishek)
 Demonstrates blue-green zero-downtime edge cutover. A standby Nginx instance configured on Mac 3 (`team-https-standby.conf`, setting `X-Edge: mac3-standby`) is deployed with matching TLS certificates (`app.crt` and `app.key`). DNS records for `app.team1.test` are shifted from Mac 2 to Mac 3 across both primary and backup resolvers. Cached clients continue hitting Mac 2 until the 30-second TTL expires, while new requests and flushed clients immediately route through Mac 3's standby edge.
+
+**Measured results (DNS side, Abhishek).** The standby was first tested from Mac 1 with `curl --resolve`, before any DNS change. At the cutover the primary restarted with the new record at 21:02:54; the Mac 4 client kept its cached address until 21:03:17 and used the standby from 21:03:20. At the cut back the primary restarted at 21:05:42; the client stayed on the standby until 21:05:55 and returned to Mac 2 at 21:05:57. Both edges stayed up, so every watch line shown returned HTTP 200. The old server must therefore keep running for at least the TTL after a cutover. A separate flushed-client check was not captured in this run.
 
 ### Extension F — Troubleshooting challenge (all)
 Pending.
