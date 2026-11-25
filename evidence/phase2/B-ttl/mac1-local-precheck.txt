@@ -1,0 +1,52 @@
+LOCAL PRE-CHECK on Mac 1 only: both resolvers run on this Mac on test ports 5354 (primary) and 5355 (backup).
+192.0.2.x = documentation placeholder IPs. sudo was stubbed. This is NOT the 4-Mac demo evidence.
+Date: Wed Nov 25 18:08:20 IST 2026
+Dnsmasq version 2.93  Copyright (c) 2000-2026 Simon Kelley
+
+== 1. start primary and backup ==
+dnsmasq: syntax check OK.
+dnsmasq (primary): RUNNING, pid 87800, config config/live/dnsmasq.conf
+Records in config:
+  host-record=app.team1.test,192.0.2.12
+  host-record=api.team1.test,192.0.2.12
+  local-ttl=30
+Local answer (dig @127.0.0.1 -p 5354 app.team1.test):
+  
+app.team1.test.		30	IN	A	192.0.2.12
+dnsmasq: syntax check OK.
+dnsmasq (backup): RUNNING, pid 87824, config config/live/dnsmasq-backup.conf
+Records in config:
+  host-record=app.team1.test,192.0.2.12
+  host-record=api.team1.test,192.0.2.12
+  local-ttl=30
+Local answer (dig @127.0.0.1 -p 5355 app.team1.test):
+  
+app.team1.test.		30	IN	A	192.0.2.12
+== 2. primary answer (expect TTL 30) ==
+  app.team1.test.		30	IN	A	192.0.2.12
+== 3. backup answer (expect same) ==
+  app.team1.test.		30	IN	A	192.0.2.12
+== 4. point-app 192.0.2.13 on primary ==
+app.team1.test -> 192.0.2.13 in config/live/dnsmasq.conf
+dnsmasq (primary) stopped.
+dnsmasq: syntax check OK.
+dnsmasq (primary): RUNNING, pid 87863, config config/live/dnsmasq.conf
+Records in config:
+  host-record=app.team1.test,192.0.2.13
+  host-record=api.team1.test,192.0.2.12
+  local-ttl=30
+Local answer (dig @127.0.0.1 -p 5354 app.team1.test):
+  
+app.team1.test.		30	IN	A	192.0.2.13
+api record (expect unchanged):
+192.0.2.12
+== 5. stop primary ==
+dnsmasq (primary) stopped.
+primary:
+  NO ANSWER
+backup:
+  app.team1.test.		30	IN	A	192.0.2.12
+== 6. unknown name in team zone ==
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 10330
+== 7. stop backup ==
+dnsmasq (backup) stopped.

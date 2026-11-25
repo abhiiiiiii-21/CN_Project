@@ -10,6 +10,33 @@ Both backend application services (Backend A and Backend B) run as separate conc
 
 ---
 
+## Phase 2 Topology (planned)
+
+The sections after this one record the Phase 1 deployment on three Macs. Phase 2 adds a fourth Mac:
+
+| Machine | Owner | Role | Ports |
+|---|---|---|---|
+| Mac 1 | Abhishek | Primary DNS, test client | 53 |
+| Mac 2 | Modi | nginx edge: TLS and load balancer | 8080, 8443 |
+| Mac 3 | Kapish | Backend A, standby edge | 3001, 8443 (standby) |
+| Mac 4 | Vikash | Backend B, backup DNS, test client | 3002, 53 |
+
+`MAC4_IP` is added to `~/cn-team.env`. DNS details: [10-phase2-dns.md](10-phase2-dns.md).
+
+```mermaid
+flowchart LR
+    C["Client"] -->|"DNS query"| D1["Mac 1: primary DNS"]
+    C -.->|"if primary is down"| D2["Mac 4: backup DNS"]
+    C -->|"HTTPS 8443"| E["Mac 2: nginx edge"]
+    C -.->|"after DNS cutover"| S["Mac 3: standby edge"]
+    E --> A["Mac 3: Backend A :3001"]
+    E --> B["Mac 4: Backend B :3002"]
+    S -.-> A
+    S -.-> B
+```
+
+---
+
 ## Node Roles and Allocation
 
 | Machine | Role | Software / Service | Ports | Description |
