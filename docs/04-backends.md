@@ -6,6 +6,13 @@ The application backend layer is hosted entirely on **Mac 3**. To validate multi
 
 Both Backend A and Backend B execute on **Mac 3**.
 
+> **Phase 2 change:** Backend B moved to **Mac 4** (`$MAC4_IP:3002`); Mac 3 runs only Backend A (`$MAC3_IP:3001`). The code and endpoints are unchanged. In Phase 2 both backend Macs also run pf rules that allow ports 3001-3002 only from the edges (Extension C). See [10-phase2-backend.md](10-phase2-backend.md). The tables below describe the Phase 1 layout.
+
+| Instance | Phase 1 host | Phase 2 host | Launch command |
+|---|---|---|---|
+| Backend A | Mac 3 | Mac 3 (`$MAC3_IP:3001`) | `python3 backend/server.py A 3001` |
+| Backend B | Mac 3 | **Mac 4** (`$MAC4_IP:3002`) | `python3 backend/server.py B 3002` |
+
 ---
 
 ## Service Specifications
@@ -83,7 +90,7 @@ Before testing through the Mac 2 load balancer, each backend service can be veri
 curl -i http://$MAC3_IP:3001/api/status
 # Expected: HTTP 200, X-Backend: A, Cache-Control: no-store
 
-# 2. Verify dynamic status on Backend B
+# 2. Verify dynamic status on Backend B (Phase 2: use $MAC4_IP instead of $MAC3_IP)
 curl -i http://$MAC3_IP:3002/api/status
 # Expected: HTTP 200, X-Backend: B, Cache-Control: no-store
 

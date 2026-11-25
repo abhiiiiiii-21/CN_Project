@@ -1,0 +1,78 @@
+LOCAL PRE-CHECK on Mac 3 (Kapish) only, against origin/main e13cf84.
+192.0.2.x = documentation placeholder IPs. nginx is not installed on this Mac yet (step 0.3) and pfctl needs sudo,
+so nginx/pf were NOT run. This is NOT the 4-Mac demo evidence.
+Date: Wed Nov 25 18:16:38 IST 2026
+Python 3.13.6
+
+== 1. script syntax (bash -n) ==
+  ok  scripts/_common.sh
+  ok  scripts/demo.sh
+  ok  scripts/dns-ctl.sh
+  ok  scripts/edge-apply.sh
+  ok  scripts/make-certs.sh
+  ok  scripts/pf-isolate.sh
+  ok  scripts/phase2-demo.sh
+  ok  scripts/render-configs.sh
+
+== 2. render configs (expect 6 x [OK] Rendered) ==
+Sourcing environment variables from: ~/cn-team.env (test copy with 192.0.2.x IPs)
+Rendering configuration templates for team 'team1'...
+  [OK] Rendered config/live/dnsmasq.conf
+  [OK] Rendered config/live/dnsmasq-backup.conf
+  [OK] Rendered config/live/team-http.conf
+  [OK] Rendered config/live/team-https.conf
+  [OK] Rendered config/live/team-https-standby.conf
+  [OK] Rendered config/live/pf-backends.conf
+Configuration rendering complete.
+
+== 3. standby edge config for Mac 3 (Ext E) ==
+5:#   config/live/team-https.conf          -> Mac 2 primary edge  (X-Edge: mac2-primary)
+6:#   config/live/team-https-standby.conf  -> Mac 3 standby edge  (X-Edge: mac3-standby)
+10:    server 192.0.2.13:3001;
+11:    server 192.0.2.14:3002;
+15:    listen 8443 ssl;
+20:    ssl_certificate /opt/homebrew/etc/nginx/certs/app.crt;       # e.g., /path/to/certs/app.crt
+21:    ssl_certificate_key /opt/homebrew/etc/nginx/certs/app.key;   # e.g., /path/to/certs/app.key
+37:        add_header X-Edge mac3-standby always;
+  diff primary vs standby:
+  37c37
+  <         add_header X-Edge mac2-primary always;
+  ---
+  >         add_header X-Edge mac3-standby always;
+
+== 4. pf rules for Mac 3 / Mac 4 (Ext C, expect 4 rules) ==
+  pass in quick on lo0 proto tcp from any to any port 3001:3002
+  pass in quick proto tcp from 192.0.2.12 to any port 3001:3002
+  pass in quick proto tcp from { 192.0.2.13 } to any port 3001:3002
+  block drop in quick proto tcp from any to any port 3001:3002
+  rule count: 4
+
+== 5. day-3 drill: sed '/from $MAC2_IP/d' must remove only the Mac 2 line ==
+  pass in quick on lo0 proto tcp from any to any port 3001:3002
+  pass in quick proto tcp from { 192.0.2.13 } to any port 3001:3002
+  block drop in quick proto tcp from any to any port 3001:3002
+
+== 6. Backend A on 0.0.0.0:3001 (steps 9/13/26) ==
+  Backend A listening on 0.0.0.0:3001
+  curl /api/status:
+    HTTP/1.0 200 OK
+    X-Backend: A
+    Cache-Control: no-store
+    {"backend": "A", "status": "ok", "time": "2026-11-25T12:46:40.145161+00:00"}
+  reachable on LAN address too (nc -z <Mac 3 en0 IP> 3001):
+Connection to <Mac 3 en0 IP> port 3001 [tcp/redwood-broker] succeeded!
+    succeeded
+  /api/info ETag "6402143662621d1b", conditional request:
+    HTTP 304
+
+== 7. step 23: Backend A stopped -> port closed ==
+  connection refused (expected; nginx should then use Backend B only)
+
+== 8. pf launch daemon present (loads /etc/pf.conf, which evaluates anchor com.apple/*) ==
+  /System/Library/LaunchDaemons/com.apple.pfctl.plist
+  /etc/pf.conf:22:scrub-anchor "com.apple/*"
+  /etc/pf.conf:23:nat-anchor "com.apple/*"
+  /etc/pf.conf:24:rdr-anchor "com.apple/*"
+  /etc/pf.conf:25:dummynet-anchor "com.apple/*"
+  /etc/pf.conf:26:anchor "com.apple/*"
+  /etc/pf.conf:27:load anchor "com.apple" from "/etc/pf.anchors/com.apple"
