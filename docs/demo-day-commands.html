@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo Day Commands</title>
+<style>
+:root{--bg:#fff;--fg:#17202a;--card:#f4f6f8;--line:#d5dbe1;--accent:#1d5fd1}
+@media (prefers-color-scheme:dark){:root{--bg:#12161b;--fg:#e6eaee;--card:#1c222a;--line:#333c47;--accent:#7aa9ff}}
+*{box-sizing:border-box}html{scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+nav{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:8px;overflow-x:auto;z-index:2}
+nav a{white-space:nowrap;color:var(--accent);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:14px}
+main{max-width:900px;margin:0 auto;padding:16px 16px 80px}
+h2{margin-top:40px;border-bottom:2px solid var(--line);padding-bottom:6px}h3{margin-top:28px}
+.m1{border-left:6px solid #1d5fd1;padding-left:10px}.m2{border-left:6px solid #d97706;padding-left:10px}
+.m3{border-left:6px solid #15803d;padding-left:10px}.m4{border-left:6px solid #9333ea;padding-left:10px}
+.cmd{display:flex;gap:8px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin:8px 0}
+.cmd pre{margin:0;flex:1;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
+button{background:var(--accent);color:var(--bg);border:0;border-radius:6px;padding:6px 14px;font-weight:600;cursor:pointer}
+.tbl{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+</style></head><body>
+<nav><a href="#s2">Part 1: Start the system (in this order)</a><a href="#s10">Part 2: Show the basic system</a><a href="#s17">Part 3: Extension demos</a><a href="#s22">Part 4: Extension F, the teacher breaks something</a><a href="#s23">Part 5: Quick fixes by Mac</a><a href="#s24">Part 6: After the demo is over</a></nav>
+<main>
+<h1 id="s1" class="m1">Demo Day Commands (Mac 1, 2, 3, 4)</h1>
+<div class="tbl"><table><tr><th>Mac</th><th>Person</th><th>Role</th><th>IP</th><th>Project folder</th></tr><tr><td>1</td><td>Abhishek</td><td>Primary DNS, client</td><td><code>10.7.30.25</code></td><td><code>cd ~/Documents/Coding/Assignments/CN_Project</code></td></tr><tr><td>2</td><td>Modi</td><td>nginx edge (TLS, load balancer)</td><td><code>10.7.29.185</code></td><td><code>cd ~/Desktop/CN_Project</code></td></tr><tr><td>3</td><td>Kapish</td><td>Backend A, standby edge, firewall</td><td><code>10.7.1.253</code></td><td><code>cd ~/Desktop/vscode/CN/CN_Project</code></td></tr><tr><td>4</td><td>Vikash</td><td>Backend B, backup DNS, client</td><td><code>10.7.23.21</code></td><td><code>cd ~/Desktop/CN_Project</code></td></tr></table></div>
+<p class="">Run every command from your project folder. Type <code>sudo</code> passwords only on your own Mac.</p>
+<p class=""><strong>If any IP is different</strong>, update <code>~/cn-team.env</code> on all four Macs, run <code>./scripts/render-configs.sh</code> on each, restart the services, and use the new IP wherever an IP is typed below.</p>
+<h2 id="s2" class="">Part 1: Start the system (in this order)</h2>
+<h3 id="s3" class="m1">1. Mac 1 (Abhishek)</h3>
+<div class="cmd"><pre><code>./scripts/mac1.sh demo</code></pre><button type="button">Copy</button></div>
+<h3 id="s4" class="m3">2. Mac 3 (Kapish), keep this terminal open</h3>
+<div class="cmd"><pre><code>python3 backend/server.py A 3001</code></pre><button type="button">Copy</button></div>
+<h3 id="s5" class="m4">3. Mac 4 (Vikash), keep this terminal open</h3>
+<div class="cmd"><pre><code>python3 backend/server.py B 3002</code></pre><button type="button">Copy</button></div>
+<h3 id="s6" class="m4">4. Mac 4 (Vikash), in a second terminal</h3>
+<div class="cmd"><pre><code>./scripts/dns-ctl.sh backup start</code></pre><button type="button">Copy</button></div>
+<h3 id="s7" class="m2">5. Mac 2 (Modi), in Apple's Terminal app, not VS Code</h3>
+<div class="cmd"><pre><code>./scripts/edge-apply.sh primary</code></pre><button type="button">Copy</button></div>
+<h3 id="s8" class="m4">6. Mac 4 (Vikash), and any other Mac used as a client</h3>
+<div class="cmd"><pre><code>sudo networksetup -setdnsservers Wi-Fi 10.7.30.25 10.7.23.21</code></pre><button type="button">Copy</button></div>
+<h3 id="s9" class="m1">7. Mac 1 (Abhishek): check everything</h3>
+<div class="cmd"><pre><code>./scripts/demo.sh all</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh lb 8</code></pre><button type="button">Copy</button></div>
+<p class="">Expected: no <code>FAIL</code>, and 8 of 8 requests return 200 with both A and B.</p>
+<h2 id="s10" class="">Part 2: Show the basic system</h2>
+<h3 id="s11" class="m1">Mac 1: DNS</h3>
+<div class="cmd"><pre><code>cat config/live/dnsmasq.conf</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/dns-ctl.sh primary status</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>dig app.team1.test @10.7.30.25</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>dig api.team1.test @10.7.30.25</code></pre><button type="button">Copy</button></div>
+<h3 id="s12" class="">Any client: TLS and HTTP</h3>
+<div class="cmd"><pre><code>curl -v https://app.team1.test:8443/api/status</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>curl -I http://app.team1.test:8080/</code></pre><button type="button">Copy</button></div>
+<p class="">Expected: <code>301</code> to HTTPS.</p>
+<div class="cmd"><pre><code>curl -sI --http1.1 https://app.team1.test:8443/api/status</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>curl -sI --http2 https://app.team1.test:8443/api/status</code></pre><button type="button">Copy</button></div>
+<h3 id="s13" class="">Any client: load balancing</h3>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh lb 8</code></pre><button type="button">Copy</button></div>
+<h3 id="s14" class="">Any client: caching</h3>
+<div class="cmd"><pre><code>curl -i https://app.team1.test:8443/api/info</code></pre><button type="button">Copy</button></div>
+<p class="">Look for <code>cache-control: public, max-age=60</code> and <code>etag</code>. Then send the ETag back:</p>
+<div class="cmd"><pre><code>curl -i -H &#x27;If-None-Match: &quot;6402143662621d1b&quot;&#x27; https://app.team1.test:8443/api/info</code></pre><button type="button">Copy</button></div>
+<p class="">Expected: <code>304</code>. If the ETag shown by the first command is different, use that one.</p>
+<h3 id="s15" class="m2">Mac 2 (Modi): edge</h3>
+<div class="cmd"><pre><code>./scripts/edge-apply.sh status</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>cat config/live/team-https.conf</code></pre><button type="button">Copy</button></div>
+<h3 id="s16" class="">Mac 3 and Mac 4: backends</h3>
+<p class="">Mac 3:</p>
+<div class="cmd"><pre><code>curl -i http://localhost:3001/api/status</code></pre><button type="button">Copy</button></div>
+<p class="">Mac 4:</p>
+<div class="cmd"><pre><code>curl -i http://localhost:3002/api/status</code></pre><button type="button">Copy</button></div>
+<h2 id="s17" class="">Part 3: Extension demos</h2>
+<p class="">Finish one demo and restore it before starting the next.</p>
+<h3 id="s18" class="">A. Backup DNS</h3>
+<p class="step m4">1. <strong>Mac 4 (client):</strong> both DNS servers must be set (Part 1, step 6).</p>
+<p class="step m1">2. <strong>Mac 1:</strong></p>
+<div class="cmd"><pre><code>./scripts/mac1.sh stop</code></pre><button type="button">Copy</button></div>
+<p class="step m4">3. <strong>Mac 4:</strong></p>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh flush</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh dns</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh lb 4</code></pre><button type="button">Copy</button></div>
+<p class="">Expected: primary shows no answer, backup answers, requests return 200.</p>
+<p class="step m1">4. <strong>Restore, Mac 1:</strong></p>
+<div class="cmd"><pre><code>./scripts/mac1.sh start</code></pre><button type="button">Copy</button></div>
+<p class="">Optional, to show DNS packets live on a client (stop with Ctrl-C):</p>
+<div class="cmd"><pre><code>sudo tcpdump -i en0 -nn port 53</code></pre><button type="button">Copy</button></div>
+<h3 id="s19" class="">D. Backend failure</h3>
+<p class="step m3">1. <strong>Mac 3:</strong> press <strong>Ctrl-C</strong> in the Backend A terminal.</p>
+<p class="step">2. <strong>Any client:</strong></p>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh lb 6</code></pre><button type="button">Copy</button></div>
+<p class="">Expected: all 200, only B.</p>
+<p class="step m3">3. <strong>Restore, Mac 3:</strong></p>
+<div class="cmd"><pre><code>python3 backend/server.py A 3001</code></pre><button type="button">Copy</button></div>
+<p class="step">4. <strong>Any client:</strong> wait a few seconds, then:</p>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh lb 8</code></pre><button type="button">Copy</button></div>
+<p class="">Expected: A and B both answer.</p>
+<p class="">Extra, both backends down: press Ctrl-C on Mac 3 and Mac 4. A client gets <code>502</code>. Start both again.</p>
+<h3 id="s20" class="">C. Firewall isolation</h3>
+<p class="step">1. <strong>Mac 3 and Mac 4:</strong></p>
+<div class="cmd"><pre><code>./scripts/pf-isolate.sh status</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/render-configs.sh</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/pf-isolate.sh enable</code></pre><button type="button">Copy</button></div>
+<p class="step m1">2. <strong>Mac 1:</strong></p>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh isolation</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh lb 8</code></pre><button type="button">Copy</button></div>
+<p class="">Expected: both backend ports <code>BLOCKED</code>, 8 of 8 through the edge return 200.</p>
+<p class="step m2">3. <strong>Mac 2:</strong> the edge is still allowed.</p>
+<div class="cmd"><pre><code>nc -vz -G 3 10.7.1.253 3001</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>nc -vz -G 3 10.7.23.21 3002</code></pre><button type="button">Copy</button></div>
+<p class="step">4. <strong>Mac 3 and Mac 4:</strong> show the counters on the <code>block</code> rule.</p>
+<div class="cmd"><pre><code>./scripts/pf-isolate.sh status</code></pre><button type="button">Copy</button></div>
+<p class="step">5. <strong>Restore, Mac 3 and Mac 4. Do not skip this.</strong></p>
+<div class="cmd"><pre><code>./scripts/pf-isolate.sh disable</code></pre><button type="button">Copy</button></div>
+<p class="step m1">6. <strong>Mac 1:</strong> both ports show <code>OPEN</code> again.</p>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh isolation</code></pre><button type="button">Copy</button></div>
+<h3 id="s21" class="">B and E. TTL, cache and switching to the standby edge</h3>
+<p class="step m3">1. <strong>Mac 3, in Apple's Terminal app, new window</strong> (Backend A keeps running):</p>
+<div class="cmd"><pre><code>./scripts/edge-apply.sh standby</code></pre><button type="button">Copy</button></div>
+<p class="step m1">2. <strong>Mac 1:</strong> test the standby before changing DNS.</p>
+<div class="cmd"><pre><code>curl -i --resolve app.team1.test:8443:10.7.1.253 https://app.team1.test:8443/api/status</code></pre><button type="button">Copy</button></div>
+<p class="">Expected: 200 and <code>x-edge: mac3-standby</code>.</p>
+<p class="step m4">3. <strong>Mac 4:</strong> use Mac 1 only, so the backup cannot give the old address.</p>
+<div class="cmd"><pre><code>sudo networksetup -setdnsservers Wi-Fi 10.7.30.25</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh watch</code></pre><button type="button">Copy</button></div>
+<p class="step m1">4. <strong>Mac 1:</strong> switch to the standby.</p>
+<div class="cmd"><pre><code>./scripts/mac1.sh standby</code></pre><button type="button">Copy</button></div>
+<p class="step m1">5. <strong>Mac 1:</strong> ask the DNS server directly. It gives the new IP at once.</p>
+<div class="cmd"><pre><code>dig app.team1.test @10.7.30.25</code></pre><button type="button">Copy</button></div>
+<p class="step m4">6. <strong>Mac 4:</strong> keep watching. Do not flush. It moves to <code>mac3-standby</code> when its saved answer expires, normally within 30 seconds.</p>
+<p class="step m4">7. <strong>Mac 4, second terminal:</strong> type these, but press Enter on the second only after step 8.</p>
+<div class="cmd"><pre><code>sudo -v</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh flush</code></pre><button type="button">Copy</button></div>
+<p class="step m1">8. <strong>Mac 1:</strong> switch back.</p>
+<div class="cmd"><pre><code>./scripts/mac1.sh primary</code></pre><button type="button">Copy</button></div>
+<p class="">As soon as it finishes, Mac 4 presses Enter on the flush. The watch should show <code>mac2-primary</code>. If it changed before the flush, say so: that run does not prove the flush caused it.</p>
+<p class="step m4">9. <strong>Restore, Mac 4:</strong> press Ctrl-C on the watch, then:</p>
+<div class="cmd"><pre><code>sudo networksetup -setdnsservers Wi-Fi 10.7.30.25 10.7.23.21</code></pre><button type="button">Copy</button></div>
+<p class="step m3">10. <strong>Restore, Mac 3:</strong> stop the standby edge only. Backend A keeps running.</p>
+<div class="cmd"><pre><code>./scripts/edge-apply.sh stop</code></pre><button type="button">Copy</button></div>
+<h2 id="s22" class="">Part 4: Extension F, the teacher breaks something</h2>
+<p class="">Check in this order and stop at the first failure: <strong>client settings → DNS → TCP → TLS → HTTP.</strong> Say each result out loud. Change nothing until you can name the broken layer.</p>
+<p class="">Run on a client:</p>
+<p class=""><strong>1. Client settings</strong> (expect Mac 1, then Mac 4)</p>
+<div class="cmd"><pre><code>scutil --dns | grep nameserver | head -2</code></pre><button type="button">Copy</button></div>
+<p class=""><strong>2. DNS</strong> (both should answer <code>10.7.29.185</code>)</p>
+<div class="cmd"><pre><code>dig app.team1.test @10.7.30.25</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>dig app.team1.test @10.7.23.21</code></pre><button type="button">Copy</button></div>
+<p class=""><strong>2b. The Mac's saved answer</strong></p>
+<div class="cmd"><pre><code>dscacheutil -q host -a name app.team1.test</code></pre><button type="button">Copy</button></div>
+<p class=""><strong>3. TCP</strong> (expect <code>succeeded</code>)</p>
+<div class="cmd"><pre><code>nc -vz -G 3 10.7.29.185 8443</code></pre><button type="button">Copy</button></div>
+<p class=""><strong>4. TLS</strong> (expect <code>SSL certificate verify ok</code>)</p>
+<div class="cmd"><pre><code>curl -v https://app.team1.test:8443/ 2&gt;&amp;1 | grep -E &quot;subject:|issuer:|verify|SSL&quot;</code></pre><button type="button">Copy</button></div>
+<p class=""><strong>5. HTTP</strong> (expect 200, and both A and B)</p>
+<div class="cmd"><pre><code>./scripts/phase2-demo.sh lb 6</code></pre><button type="button">Copy</button></div>
+<div class="tbl"><table><tr><th>You see</th><th>Problem is likely in</th><th>Next step</th></tr><tr><td>Wrong nameservers</td><td>Client settings</td><td>Set DNS again (Part 1, step 6)</td></tr><tr><td>No DNS answer</td><td>DNS server</td><td><code>./scripts/dns-ctl.sh primary status</code> (Mac 1) or <code>backup status</code> (Mac 4)</td></tr><tr><td>Wrong IP</td><td>DNS record</td><td><code>grep host-record config/live/dnsmasq*.conf</code></td></tr><tr><td><code>dig</code> right, saved answer old</td><td>Client cache</td><td><code>./scripts/phase2-demo.sh flush</code></td></tr><tr><td><code>Connection refused</code> on 8443</td><td>Edge is not listening</td><td>Mac 2: <code>./scripts/edge-apply.sh status</code></td></tr><tr><td>Certificate error</td><td>TLS</td><td>Check <code>subject</code> and <code>issuer</code>; do not use <code>-k</code></td></tr><tr><td><code>502</code> or <code>504</code></td><td>Edge to backend</td><td>Mac 2 error log, below</td></tr><tr><td>Only A or only B</td><td>One backend or upstream</td><td>Mac 2 error log, then check that backend</td></tr></table></div>
+<p class="">Mac 2 error log:</p>
+<div class="cmd"><pre><code>tail -n 20 &quot;$(brew --prefix)/var/log/nginx/error.log&quot;</code></pre><button type="button">Copy</button></div>
+<p class="">If the log shows <code>no live upstreams</code> or <code>No route to host</code> while another Mac can reach both backends, run these on Mac 2 in Apple's Terminal app:</p>
+<div class="cmd"><pre><code>./scripts/edge-apply.sh stop</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/edge-apply.sh primary</code></pre><button type="button">Copy</button></div>
+<h2 id="s23" class="">Part 5: Quick fixes by Mac</h2>
+<div class="tbl"><table><tr><th>Mac</th><th>Check</th><th>Restart</th></tr><tr><td>1</td><td><code>./scripts/mac1.sh status</code></td><td><code>./scripts/mac1.sh restart</code></td></tr><tr><td>2</td><td><code>./scripts/edge-apply.sh status</code></td><td><code>./scripts/edge-apply.sh primary</code></td></tr><tr><td>3</td><td><code>curl -i http://localhost:3001/api/status</code></td><td><code>python3 backend/server.py A 3001</code></td></tr><tr><td>4</td><td><code>./scripts/dns-ctl.sh backup status</code></td><td><code>./scripts/dns-ctl.sh backup restart</code></td></tr><tr><td>4</td><td><code>curl -i http://localhost:3002/api/status</code></td><td><code>python3 backend/server.py B 3002</code></td></tr></table></div>
+<h2 id="s24" class="">Part 6: After the demo is over</h2>
+<p class="">Run these only when the teacher has finished.</p>
+<p class="step">1. <strong>Mac 4 and every other client Mac:</strong></p>
+<div class="cmd"><pre><code>sudo networksetup -setdnsservers Wi-Fi empty</code></pre><button type="button">Copy</button></div>
+<p class="step m1">2. <strong>Mac 1:</strong></p>
+<div class="cmd"><pre><code>./scripts/mac1.sh normal</code></pre><button type="button">Copy</button></div>
+<p class="step m2">3. <strong>Mac 2:</strong></p>
+<div class="cmd"><pre><code>./scripts/edge-apply.sh stop</code></pre><button type="button">Copy</button></div>
+<p class="step m3">4. <strong>Mac 3:</strong> press Ctrl-C on Backend A. Then:</p>
+<div class="cmd"><pre><code>./scripts/pf-isolate.sh disable</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/edge-apply.sh stop</code></pre><button type="button">Copy</button></div>
+<p class="step m4">5. <strong>Mac 4:</strong> press Ctrl-C on Backend B. Then:</p>
+<div class="cmd"><pre><code>./scripts/pf-isolate.sh disable</code></pre><button type="button">Copy</button></div>
+<div class="cmd"><pre><code>./scripts/dns-ctl.sh backup stop</code></pre><button type="button">Copy</button></div>
+</main>
+<script>
+document.addEventListener('click',function(e){
+  if(e.target.tagName!=='BUTTON')return;
+  var b=e.target,t=b.parentNode.querySelector('code').textContent;
+  function done(ok){b.textContent=ok?'Copied':'Select and copy';setTimeout(function(){b.textContent='Copy'},1500)}
+  function old(){var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();var ok=false;try{ok=document.execCommand('copy')}catch(x){}a.remove();done(ok)}
+  if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){done(true)},old)}else{old()}
+});
+</script>
+</body></html>
