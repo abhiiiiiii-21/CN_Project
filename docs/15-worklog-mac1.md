@@ -35,3 +35,4 @@ One entry for each piece of work, newest at the bottom. Times are IST. Where a t
 | Time | Work | Result | Commit or evidence |
 |---|---|---|---|
 | 02:38 | Wrote the Mac 1 viva guide: introduction, config, demonstrations, questions and answers | Added `docs/17-mac1-viva-guide.md` | this commit |
+| 13:31 IST | Pre-demo full test on four Macs, using `mac1.sh demo` with real sudo. First run: 502 on all requests, Mac 2 log `no live upstreams` while Mac 1 reached both backends. Fixed after nginx on Mac 2 was stopped and started from Apple Terminal (cause not confirmed). | `demo.sh all` no FAIL or WARN; 8/8 requests 200 (4 A, 4 B); both DNS servers answer 10.7.29.185, TTL 30 | Terminal output, 26 Nov |
