@@ -42,3 +42,4 @@ One entry for each piece of work, newest at the bottom. Times are IST. Where a t
 | 13:55 IST | Restored after retests (Vikash DNS and Mac 3 standby nginx, reported done) and ran the final check from Mac 1. | Standby port closed, backend ports open, both DNS answer Mac 2, 8/8 200 (4 A, 4 B), `demo.sh all` no FAIL or WARN | Terminal output, 26 Nov |
 | 13:57 IST | Wrote one command sheet for all four Macs in demo order | Added `docs/18-demo-day-commands.md`; read-only client commands checked from Mac 1 | this commit |
 | 13:58 IST | Made an HTML version of the demo day command sheet with copy buttons | Added `docs/demo-day-commands.html`; all 70 command blocks match the Markdown sheet | this commit |
+| 15:06 IST | Shut down Mac 1 after the demo session with `mac1.sh normal` | DNS stopped, Wi-Fi DNS back to automatic, cache flushed; internet lookup works | Terminal output, 26 Nov |
