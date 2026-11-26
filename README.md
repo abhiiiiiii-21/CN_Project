@@ -19,7 +19,7 @@ A private multi-tier network service built on a local LAN with **four Macs**: pr
 | What is done and what remains | [docs/14-phase2-status.md](docs/14-phase2-status.md) |
 | Mac 1 DNS commands and one-key control panel | [docs/16-mac1-commands.md](docs/16-mac1-commands.md) |
 | Mac 1 viva guide | [docs/17-mac1-viva-guide.md](docs/17-mac1-viva-guide.md) |
-| [Demo day commands](docs/18-demo-day-commands.md) | Commands for Mac 1 to 4, in demo order |
+| Demo day commands (Mac 1 to 4) | [docs/18-demo-day-commands.md](docs/18-demo-day-commands.md) |
 | Mac 1 work log | [docs/15-worklog-mac1.md](docs/15-worklog-mac1.md) |
 | Troubleshooting runbook | [docs/13-troubleshooting-runbook.md](docs/13-troubleshooting-runbook.md) |
 | Phase 2 evidence | [evidence/phase2/](evidence/phase2/) |
